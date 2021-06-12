@@ -1,0 +1,854 @@
+package oakacs
+
+// 256 common four letter nouns can that represent bytes for code recovery.
+
+// Humanize translated a sequence of bytes into words.
+func Humanize(b []byte) []string {
+	result := make([]string, len(b))
+	for i, u := range b {
+		result[i] = words[u]
+	}
+	return result
+}
+
+var words = [256]string{
+	"area",
+	"army",
+	"atom",
+	"aunt",
+	"baby",
+	"back",
+	"ball",
+	"band",
+	"bank",
+	"base",
+	"beak",
+	"bear",
+	"bell",
+	"belt",
+	"bike",
+	"bill",
+	"bird",
+	"blog",
+	"blue",
+	"boat",
+	"body",
+	"bush",
+	"cake",
+	"call",
+	"cape",
+	"card",
+	"cart",
+	"case",
+	"cash",
+	"cave",
+	"cell",
+	"chat",
+	"city",
+	"club",
+	"coat",
+	"code",
+	"cold",
+	"cook",
+	"copy",
+	"core",
+	"corn",
+	"cost",
+	"crab",
+	"curd",
+	"date",
+	"deal",
+	"debt",
+	"desk",
+	"diet",
+	"doll",
+	"dome",
+	"door",
+	"duck",
+	"duty",
+	"edge",
+	"face",
+	"fact",
+	"farm",
+	"fear",
+	"feel",
+	"feet",
+	"feud",
+	"file",
+	"film",
+	"fire",
+	"firm",
+	"fish",
+	"flag",
+	"flop",
+	"flow",
+	"foil",
+	"font",
+	"food",
+	"foot",
+	"form",
+	"fort",
+	"fuel",
+	"fund",
+	"game",
+	"gear",
+	"gene",
+	"gift",
+	"girl",
+	"gnat",
+	"goal",
+	"gold",
+	"golf",
+	"gust",
+	"hair",
+	"half",
+	"hall",
+	"hand",
+	"head",
+	"heat",
+	"heir",
+	"help",
+	"hill",
+	"hole",
+	"home",
+	"hour",
+	"hush",
+	"icon",
+	"idea",
+	"iron",
+	"itch",
+	"item",
+	"java",
+	"kick",
+	"king",
+	"lady",
+	"lake",
+	"land",
+	"lane",
+	"lawn",
+	"leak",
+	"left",
+	"levy",
+	"line",
+	"link",
+	"list",
+	"loan",
+	"loot",
+	"loss",
+	"love",
+	"lump",
+	"mail",
+	"mark",
+	"mass",
+	"mate",
+	"math",
+	"mice",
+	"mild",
+	"milk",
+	"mind",
+	"mode",
+	"moon",
+	"move",
+	"muse",
+	"name",
+	"neck",
+	"need",
+	"nest",
+	"next",
+	"note",
+	"oven",
+	"pack",
+	"page",
+	"pain",
+	"pair",
+	"palm",
+	"park",
+	"part",
+	"past",
+	"peak",
+	"pear",
+	"peer",
+	"peon",
+	"pike",
+	"pity",
+	"plan",
+	"plea",
+	"plum",
+	"poke",
+	"pool",
+	"port",
+	"pull",
+	"race",
+	"rain",
+	"rank",
+	"rate",
+	"read",
+	"rest",
+	"ring",
+	"risk",
+	"road",
+	"roar",
+	"rock",
+	"role",
+	"room",
+	"root",
+	"rope",
+	"rule",
+	"rung",
+	"safe",
+	"sage",
+	"sale",
+	"salt",
+	"sand",
+	"save",
+	"seat",
+	"self",
+	"ship",
+	"shoe",
+	"shop",
+	"shot",
+	"show",
+	"side",
+	"sign",
+	"sink",
+	"site",
+	"size",
+	"skin",
+	"slot",
+	"snow",
+	"song",
+	"soul",
+	"spot",
+	"star",
+	"step",
+	"stew",
+	"stop",
+	"suit",
+	"tale",
+	"talk",
+	"tarp",
+	"task",
+	"team",
+	"tear",
+	"tech",
+	"teen",
+	"tell",
+	"term",
+	"test",
+	"text",
+	"thaw",
+	"tick",
+	"time",
+	"toil",
+	"toll",
+	"tool",
+	"tour",
+	"town",
+	"tree",
+	"trip",
+	"tube",
+	"turn",
+	"type",
+	"unit",
+	"user",
+	"vice",
+	"view",
+	"void",
+	"vote",
+	"wall",
+	"wave",
+	"week",
+	"wind",
+	"wine",
+	"wish",
+	"wood",
+	"word",
+	"work",
+	"writ",
+	"yawn",
+	"year",
+	"zone",
+	// "cast",
+	// "rose",
+	// "pick",
+}
+
+// https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-10000-english-no-swears.txt
+
+/*
+feed
+race
+rent
+dark
+host
+poor
+eyes
+lord
+hear
+wife
+flat
+flow
+path
+load
+drop
+gone
+fort
+ends
+bear
+gain
+lack
+zoom
+blow
+clip
+wire
+tape
+zero
+roll
+bath
+font
+beta
+fail
+jazz
+wear
+dual
+rise
+bird
+grow
+rain
+onto
+diff
+bass
+ride
+plug
+lose
+seek
+kits
+soil
+keys
+poll
+bond
+jean
+visa
+pure
+lens
+draw
+warm
+babe
+crew
+legs
+rear
+node
+lock
+mile
+mens
+bowl
+tank
+navy
+dish
+adam
+slot
+gray
+demo
+hate
+rice
+loop
+milk
+boot
+push
+misc
+beer
+earn
+twin
+suit
+chip
+char
+echo
+grid
+pull
+nick
+plot
+pump
+exam
+bold
+scan
+aged
+bulk
+cute
+para
+seed
+peer
+meat
+bang
+bone
+gate
+tone
+neck
+wing
+rail
+tube
+belt
+luck
+dial
+gang
+cake
+semi
+cafe
+shoe
+sand
+seal
+pipe
+deck
+dose
+folk
+hist
+lift
+mall
+fell
+yard
+pour
+dust
+ward
+roof
+kiss
+rush
+yoga
+lamp
+glad
+wins
+rack
+boss
+ross
+anna
+solo
+tall
+pdas
+nova
+wake
+drum
+foto
+ease
+tabs
+pine
+tend
+gulf
+rick
+hunt
+thai
+fred
+mill
+burn
+labs
+sole
+laid
+clay
+weak
+blvd
+wise
+odds
+marc
+sons
+leaf
+silk
+wolf
+kick
+meal
+hurt
+slip
+cuts
+mars
+caps
+pill
+meta
+mint
+spin
+wash
+soap
+guns
+hero
+punk
+duke
+pace
+wage
+dawn
+carl
+coat
+rica
+reed
+temp
+vast
+wrap
+mood
+quiz
+beam
+tops
+shut
+ncaa
+thou
+mask
+coal
+lion
+goto
+neil
+beef
+hats
+surf
+hook
+cord
+crop
+lite
+sing
+tons
+hang
+hood
+fame
+ruby
+mins
+stem
+drew
+tune
+corn
+puts
+grew
+trek
+brad
+jury
+tail
+lawn
+soup
+byte
+nose
+oclc
+juan
+thru
+trim
+quit
+lung
+sees
+bull
+mart
+tale
+coin
+fake
+cure
+arch
+asin
+bomb
+harm
+deer
+oven
+noon
+proc
+chef
+isle
+slim
+comp
+spec
+penn
+midi
+tied
+oils
+stud
+fold
+pole
+mega
+bend
+glen
+pond
+tire
+chad
+drag
+ripe
+rely
+nuts
+nail
+span
+joke
+pads
+foam
+poem
+bean
+bias
+swim
+loud
+stat
+bios
+thee
+pray
+pope
+jeep
+bare
+hung
+mono
+tile
+apps
+ciao
+knee
+prep
+chem
+pros
+cant
+sara
+joan
+duck
+dive
+fiji
+audi
+raid
+volt
+dirt
+acer
+dist
+geek
+sink
+grip
+watt
+pins
+reno
+polo
+horn
+prot
+frog
+logs
+snap
+jpeg
+swap
+flip
+buzz
+nuke
+boom
+calm
+fork
+troy
+zope
+gmbh
+sims
+tray
+sage
+suse
+cave
+wool
+eyed
+grab
+oops
+trap
+fool
+karl
+dies
+jail
+ipaq
+comm
+lace
+ugly
+hart
+ment
+biol
+rows
+treo
+gods
+poly
+ears
+fist
+mere
+cons
+taxi
+worn
+shaw
+expo
+deny
+bali
+judy
+trio
+cube
+rugs
+fate
+gras
+oval
+soma
+href
+benz
+wifi
+tier
+earl
+guam
+cite
+mess
+rope
+dump
+hose
+pubs
+mild
+clan
+sync
+mesa
+hull
+shed
+memo
+tide
+funk
+reel
+bind
+rand
+buck
+usgs
+acre
+lows
+aqua
+chen
+emma
+pest
+reef
+chan
+beth
+jill
+sofa
+dans
+viii
+tent
+dept
+hack
+dare
+hawk
+lamb
+junk
+lucy
+hans
+poet
+epic
+sake
+sans
+lean
+dude
+luis
+alto
+gore
+cult
+dash
+cage
+divx
+hugh
+jake
+eval
+ping
+flux
+muze
+oman
+rage
+adsl
+prix
+avon
+rays
+walt
+acne
+libs
+undo
+dana
+halo
+gays
+exec
+maui
+vids
+yale
+doom
+owen
+bite
+issn
+myth
+weed
+oecd
+dice
+quad
+dock
+mods
+hint
+msie
+buys
+pork
+barn
+fare
+asus
+bald
+fuji
+leon
+mold
+dame
+herb
+alot
+idle
+cove
+casa
+eden
+incl
+reid
+flex
+rosa
+hash
+lazy
+carb
+pens
+worm
+deaf
+mats
+blah
+mime
+feof
+usda
+keen
+peas
+urls
+owns
+zinc
+guru
+levy
+grad
+bras
+kyle
+pale
+gaps
+tear
+nest
+nato
+gale
+stan
+idol
+moss
+cork
+mali
+dome
+heel
+yang
+dumb
+feat
+ntsc
+usps
+conf
+glow
+oaks
+erik
+paso
+norm
+ware
+jade
+foul
+keno
+seas
+pose
+mrna
+goat
+sail
+sega
+cdna
+bolt
+gage
+urge
+smtp
+kurt
+neon
+ours
+lone
+cope
+lime
+yarn
+knit
+pike
+bent
+*/
