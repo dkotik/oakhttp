@@ -10,3 +10,10 @@ type Role struct {
 	Name    Name
 	Actions []Action
 }
+
+// Action represents something an Identity can do.
+type Action struct {
+	Name   Name
+	Verb   Name
+	Target Name
+}
