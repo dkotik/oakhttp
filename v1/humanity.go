@@ -18,6 +18,7 @@ type TokenValidator func(ctx context.Context, token string) error
 
 // HCaptcha1 checks if a certain token identifies a human entity using hCaptcha v1.
 func HCaptcha1(secret string) TokenValidator {
+	// https://docs.hcaptcha.com/
 	return func(ctx context.Context, token string) (err error) {
 		defer func() {
 			if err != nil {

@@ -11,9 +11,20 @@
 
 1. Humanity Recognition
 2. Throttling
-3. Registration
-4. Authentication
-5. Authorization
-6. Revocation
-7. Recovery
-8. Logging
+3. Timing modulation
+4. Registration
+5. Password policy
+   - Prevent password-reuse
+6. Authentication
+7. Authorization
+8. Revocation
+9. Recovery
+10. Logging
+
+## Model
+
+- Permissions
+  - Service
+  - Domain
+  - Resource
+  - Action

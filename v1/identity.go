@@ -9,8 +9,8 @@ import (
 // Identity represents a unique acting entity, a human or a machine.
 type Identity struct {
 	UUID              xid.ID
-	Name              Name
-	Salt, Password    [hashSize]byte
+	Name              string
 	Groups            []Group
+	Secrets           []Secret
 	HumanityConfirmed time.Time
 }
