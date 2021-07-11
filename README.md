@@ -23,8 +23,13 @@
 
 ## Model
 
-- Permissions
-  - Service
-  - Domain
-  - Resource
-  - Action
+- Identity: provides authentication.
+- Group: enumerates roles which are available for identities.
+- Role: provides authorization by granular permissions.
+  - Permission
+    - Service
+    - Domain
+    - Resource
+    - Action
+- Session: the result of pairing identity to a role.
+- Token: one-time utility codes.

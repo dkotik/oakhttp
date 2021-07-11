@@ -6,8 +6,8 @@ import (
 
 // Group holds roles that identities may assume.
 type Group struct {
-	UUID    xid.ID
-	Name    Name
-	Primary Role
-	Roles   []Role
+	UUID            xid.ID
+	Name            string
+	DefaultRole     Role
+	AscendableRoles []Role
 }

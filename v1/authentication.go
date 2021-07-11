@@ -38,7 +38,9 @@ type Secret struct {
 }
 
 // Authenticate matches provided user and password to an indentity.
-func (acs *AccessControlSystem) Authenticate(ctx context.Context, user, password string) (i Identity, s Session, err error) {
+func (acs *AccessControlSystem) Authenticate(ctx context.Context, user, password string) (s Session, err error) {
+	// Authenticator should be an interface!
+
 	// throttle attempts
 	// modulate time
 	// retrieve identity

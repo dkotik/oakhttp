@@ -2,35 +2,18 @@ package oakacs
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/rs/xid"
 )
 
 // Role holds a set of allowed actions.
 type Role struct {
-	UUID  xid.ID
-	Name  string
-	Allow []Permission
-	Deny  []Permission
-}
-
-// Match returns true if a permission is not explicitly denied and is explicitly allowed.
-func (r *Role) Match(service, domain, resource, action string) bool {
-	// TODO: move this to ACS
-	var p Permission
-	for _, p = range r.Deny {
-		if p.Match(service, domain, resource, action) {
-			// TODO: zap.Logger
-			return false
-		}
-	}
-	for _, p = range r.Allow {
-		if p.Match(service, domain, resource, action) {
-			// TODO: zap.Logger
-			return true
-		}
-	}
-	return false
+	UUID     xid.ID
+	Name     string
+	Allow    []Permission
+	Deny     []Permission
+	Duration time.Duration
 }
 
 // Permission represents something an Identity can do.
