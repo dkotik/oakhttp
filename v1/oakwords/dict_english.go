@@ -1,17 +1,7 @@
-package oakacs
+package oakwords
 
-// 256 common four letter nouns can that represent bytes for code recovery.
-
-// Humanize translated a sequence of bytes into words.
-func Humanize(b []byte) []string {
-	result := make([]string, len(b))
-	for i, u := range b {
-		result[i] = words[u]
-	}
-	return result
-}
-
-var words = [256]string{
+// English list holds 256 four-letter English nouns each to represent a byte value.
+var English = [256]string{
 	"area",
 	"army",
 	"atom",

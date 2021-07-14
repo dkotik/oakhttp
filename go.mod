@@ -1,4 +1,4 @@
-module github.com/dkotik/oakacs/v1
+module github.com/dkotik/oakacs
 
 go 1.16
 
