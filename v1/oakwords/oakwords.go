@@ -1,9 +1,40 @@
 package oakwords
 
-// NewTranslator sets up a dictionary for translating bytes to words and back. If nil dictionary is provided, the English dictionary is used by default.
-func NewTranslator(dictionary *[256]string) *Translator {
+import (
+	"fmt"
+)
+
+// FromBytes translates bytes into words using the default dictionary.
+func FromBytes(b []byte) []string {
+	if defaultDictionary == nil {
+		Use(Load(DictionaryEnglishNouns))
+	}
+	result := make([]string, len(b))
+	for i, u := range b {
+		result[i] = defaultDictionary[u]
+	}
+	return result
+}
+
+// ToBytes translates words into bytes using the default dictionary.
+func ToBytes(words []string) ([]byte, error) {
+	if defaultDictionary == nil {
+		Use(Load(DictionaryEnglishNouns))
+	}
+	return NewTranslator(defaultDictionary).Decode(words)
+}
+
+// NewTranslator sets up a dictionary for translating bytes to words and back. If nil dictionary is provided, the EnglishNouns dictionary is used by default.
+func NewTranslator(dictionary *Dictionary) *Translator {
 	if dictionary == nil {
-		dictionary = &English
+		if defaultDictionary == nil {
+			Use(Load(DictionaryEnglishNouns))
+		}
+		dictionary = defaultDictionary
+	} else {
+		if err := dictionary.Validate(); err != nil {
+			panic(err)
+		}
 	}
 	t := &Translator{
 		dictionary: dictionary,
@@ -21,17 +52,8 @@ func NewTranslator(dictionary *[256]string) *Translator {
 
 // Translator encodes bytes to words and decodes words to bytes. 256 common four letter nouns can that represent bytes for code recovery.
 type Translator struct {
-	dictionary *[256]string
+	dictionary *Dictionary
 	reverse    map[string]byte
-}
-
-// Decode translated a sequence of words into bytes.
-func (t *Translator) Decode(w []string) []byte {
-	result := make([]byte, len(w))
-	for i, u := range w {
-		result[i] = t.reverse[u]
-	}
-	return result
 }
 
 // Encode translated a sequence of bytes into words.
@@ -41,4 +63,17 @@ func (t *Translator) Encode(b []byte) []string {
 		result[i] = t.dictionary[u]
 	}
 	return result
+}
+
+// Decode translated a sequence of words into bytes.
+func (t *Translator) Decode(w []string) ([]byte, error) {
+	result := make([]byte, len(w))
+	for i, u := range w {
+		if b, ok := t.reverse[u]; ok {
+			result[i] = b
+		} else {
+			return nil, fmt.Errorf("word %q was not found in the dictionary", u)
+		}
+	}
+	return result, nil
 }

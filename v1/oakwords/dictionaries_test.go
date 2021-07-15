@@ -24,7 +24,7 @@ func TestDictionaries(t *testing.T) {
 	}
 
 	for _, d := range map[string]*[256]string{
-		"English": &English,
+		"English": &EnglishNouns,
 	} {
 		t.Run("are words unique?", func(t *testing.T) {
 			if err := uniqueness(d); err != nil {

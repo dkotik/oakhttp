@@ -21,6 +21,19 @@ func TestWords(t *testing.T) {
 	})
 }
 
+func ExampleFromBytes() {
+	fmt.Println(
+		FromBytes([]byte("marvel")),
+	)
+	// Output: [lady hole leak link icon king]
+}
+
+func ExampleToBytes() {
+	b, err := ToBytes([]string{"lady", "hole", "leak", "link", "icon", "king"})
+	fmt.Println(string(b), err)
+	// Output: marvel <nil>
+}
+
 func ExampleTranslator_Encode() {
 	tr := NewTranslator(nil)
 
@@ -33,12 +46,9 @@ func ExampleTranslator_Encode() {
 func ExampleTranslator_Decode() {
 	tr := NewTranslator(nil)
 
-	fmt.Println(
-		string(
-			tr.Decode(
-				[]string{"iron", "leak", "icon", "hole", "levy"},
-			),
-		),
+	b, err := tr.Decode(
+		[]string{"iron", "leak", "icon", "hole", "levy"},
 	)
-	// Output: great
+	fmt.Println(string(b), err)
+	// Output: great <nil>
 }
