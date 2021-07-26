@@ -10,6 +10,14 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	ACSService = "oakacs"
+
+	DomainUniversal = "universal"
+)
+
+type acsContextKeyType string
+
 // NewAccessControlSystem sets up an access control system.
 func NewAccessControlSystem(withOptions ...Option) (*AccessControlSystem, error) {
 	var err error
@@ -22,10 +30,9 @@ func NewAccessControlSystem(withOptions ...Option) (*AccessControlSystem, error)
 	acs := &AccessControlSystem{
 		hashers: make(map[string]Hasher, 1),
 	}
-	for _, option := range withOptions {
-		if err = option(acs); err != nil {
-			return nil, err
-		}
+	err = WithOptions(withOptions...)(acs)
+	if err != nil {
+		return nil, err
 	}
 	if _, ok := acs.hashers["default"]; !ok {
 		// TODO: confirm that those parameters are optimal
@@ -34,6 +41,9 @@ func NewAccessControlSystem(withOptions ...Option) (*AccessControlSystem, error)
 
 	// Fill out defaults:
 
+	if acs.subscribers == nil {
+		WithSubscribers()(acs)
+	}
 	if acs.logger == nil {
 		if err = WithLogger(nil)(acs); err != nil {
 			return nil, err
@@ -49,8 +59,10 @@ type AccessControlSystem struct {
 	//
 	TokenValidator *TokenValidator
 
-	hashers map[string]Hasher
-	logger  *zap.Logger
+	subscribers       []chan (Event)
+	sessionContextKey acsContextKeyType
+	hashers           map[string]Hasher
+	logger            *zap.Logger
 }
 
 // GetSession recovers session from a request.

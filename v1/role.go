@@ -1,11 +1,20 @@
 package oakacs
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/rs/xid"
 )
+
+// RoleRepository persists the roles.
+type RoleRepository interface {
+	CreateRole(ctx context.Context, name string) (*Role, error)
+	RetrieveRole(ctx context.Context, uuid string) (*Role, error)
+	UpdateRole(ctx context.Context, uuid string, update func(*Role) error) error
+	DeleteRole(ctx context.Context, uuid string) error
+}
 
 // Role holds a set of allowed actions.
 type Role struct {

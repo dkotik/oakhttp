@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/rs/xid"
 	"go.uber.org/zap"
 )
 
@@ -17,6 +16,7 @@ const (
 	SecretDisabled secretType = iota
 	SecretPrimaryPassword
 	SecretRecoveryCode
+	SecretOAuthToken
 )
 
 // const recoveryCodeLength = 64
@@ -28,13 +28,13 @@ const (
 
 // Secret is a password or a recovery code.
 type Secret struct {
-	UUID       xid.ID
-	Identity   xid.ID
-	Salt       string
-	Hash       string
-	HashedWith string
-	Type       secretType
-	Used       time.Time
+	UUID         string
+	IdentityUUID string
+	Salt         string
+	Hash         string
+	HashedWith   string
+	Type         secretType
+	Used         time.Time
 }
 
 // Authenticate matches provided user and password to an indentity.

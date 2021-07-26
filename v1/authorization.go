@@ -1,44 +1,108 @@
 package oakacs
 
-import "context"
+import (
+	"context"
+	"errors"
+	"fmt"
 
-// Authority validates that a given session can perform a particular action.
-type Authority interface {
-	Authorize(ctx context.Context, sessionUUID, action string) bool
+	"github.com/rs/xid"
+)
+
+// ErrAuthorization happens when access to a resource is denied for any reason.
+type ErrAuthorization struct {
+	Service  string
+	Domain   string
+	Resource string
+	Action   string
+	Cause    error
 }
 
-// AuthorityFunc provides a single-method Authority.
-type AuthorityFunc func(ctx context.Context, sessionUUID, action string) bool
+// TODO: add unwrap method?
+func (e *ErrAuthorization) Error() string { return "access denied" }
 
-// Authorize satisfies the Authority interface.
-func (a AuthorityFunc) Authorize(ctx context.Context, sessionUUID, action string) bool {
-	return a(ctx, sessionUUID, action)
+type PermissionsRepository interface {
+	PullPermissions(ctx context.Context, roleUUID xid.ID) (deny []Permission, allow []Permission, err error)
+	PushPermissions(ctx context.Context, roleUUID xid.ID, deny []Permission, allow []Permission) error
+}
+
+var tempP PermissionsRepository
+
+// Authorize recovers the role from context, iterates through its permissions. Returns <nil> when one of the permissions matches and satisfies service, domain, resource, and action constraints.
+func (acs *AccessControlSystem) Authorize(
+	ctx context.Context,
+	service, domain, resource, action string,
+) (err error) {
+	session, err := acs.SessionFrom(ctx)
+	if err != nil {
+		return err
+	}
+	event := Event{
+		Type:    EventTypeAuthorizationAllowed,
+		Session: session.UUID,
+		Role:    session.Role,
+	}
+	defer func() {
+		if err != nil {
+			event.Type = EventTypeAuthorizationDenied
+			err = &ErrAuthorization{
+				Service:  service,
+				Domain:   domain,
+				Resource: resource,
+				Action:   action,
+				Cause:    err,
+			}
+			event.Error = err
+		}
+		acs.Broadcast(event)
+	}()
+	deny, allow, err := tempP.PullPermissions(ctx, session.Role)
+	if err != nil {
+		return err
+	}
+
+	var p Permission
+	for _, p = range deny {
+		if p.Match(service, domain, resource, action) {
+			return fmt.Errorf("permission explicitly denied by %s", p)
+		}
+	}
+	for _, p = range allow {
+		if p.Match(service, domain, resource, action) {
+			// TODO: need to add context to passing events as well
+			return nil
+		}
+	}
+	return errors.New("none of the permissions matched")
 }
 
 // NewAuthority prepares a function that can authorize actions taken against a resource.
 func (acs *AccessControlSystem) NewAuthority(
 	service, domain, resource string,
-) AuthorityFunc {
-
-	return func(ctx context.Context, sessionUUID, action string) bool {
-		// locate role by uuid attached to session located by uuid
-		// only need Deny and Allow lists from the role, nothing else
-		// GetPermissions(sessionUUID string) ([]Permission, []Permission, error)
-		// RBAC Permission provider?
-		// Plain Permission provider?
-		var p Permission
-		for _, p = range r.Deny {
-			if p.Match(service, domain, resource, action) {
-				// TODO: zap.Logger
-				return false
-			}
-		}
-		for _, p = range r.Allow {
-			if p.Match(service, domain, resource, action) {
-				// TODO: zap.Logger
-				return true
-			}
-		}
-		return false
+) func(ctx context.Context, action string) {
+	return func(ctx context.Context, action string) error {
+		return acs.Authorize(ctx, service, domain, resource, action)
 	}
 }
+
+// NewAuthorityWithDomainTransience prepares a function that can authorize actions across domains.
+func (acs *AccessControlSystem) NewAuthorityWithDomainTransience(
+	service, resource string,
+) func(ctx context.Context, domain, action string) {
+	return func(ctx context.Context, domain, action string) error {
+		return acs.Authorize(ctx, service, domain, resource, action)
+	}
+}
+
+// // Authority validates that a given session can perform a particular action.
+// type Authority interface {
+// 	// Authorize(ctx context.Context, sessionUUID, action string) bool
+// 	Authorize(ctx context.Context, action string) error
+// }
+//
+// // AuthorityFunc provides a single-method Authority.
+// type AuthorityFunc func(ctx context.Context, action string) error
+//
+// // Authorize satisfies the Authority interface.
+// func (a AuthorityFunc) Authorize(ctx context.Context, sessionUUID, action string) error {
+// 	return a(ctx, action)
+// }
