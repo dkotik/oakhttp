@@ -78,7 +78,7 @@ func (acs *AccessControlSystem) Authorize(
 // NewAuthority prepares a function that can authorize actions taken against a resource.
 func (acs *AccessControlSystem) NewAuthority(
 	service, domain, resource string,
-) func(ctx context.Context, action string) {
+) func(ctx context.Context, action string) error {
 	return func(ctx context.Context, action string) error {
 		return acs.Authorize(ctx, service, domain, resource, action)
 	}
@@ -87,7 +87,7 @@ func (acs *AccessControlSystem) NewAuthority(
 // NewAuthorityWithDomainTransience prepares a function that can authorize actions across domains.
 func (acs *AccessControlSystem) NewAuthorityWithDomainTransience(
 	service, resource string,
-) func(ctx context.Context, domain, action string) {
+) func(ctx context.Context, domain, action string) error {
 	return func(ctx context.Context, domain, action string) error {
 		return acs.Authorize(ctx, service, domain, resource, action)
 	}

@@ -18,16 +18,16 @@ type Session struct {
 
 // SessionFrom retrieves the session state from context.
 func (acs *AccessControlSystem) SessionFrom(ctx context.Context) (Session, error) {
-	s := ctx.Value(acs.sessionContextKey)
-	if s == nil {
+	switch s := ctx.Value(acs.sessionContextKey).(type) {
+	case Session:
+		return s, nil
+	default:
 		// TODO: standardize the error
-		return nil, errors.New("execution context is not authenticated")
+		return Session{}, errors.New("execution context is not authenticated")
 	}
-	return s, nil
 }
 
 // Bind rolls session into the provided context with deadline.
 func (acs *AccessControlSystem) bind(ctx context.Context, s Session) context.Context {
-	cd := context.WithDeadline(ctx, s.Deadline)
-	return context.WithValue(cd, acs.sessionContextKey, s)
+	return context.WithValue(ctx, acs.sessionContextKey, s)
 }

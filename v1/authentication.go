@@ -3,10 +3,9 @@ package oakacs
 import (
 	"context"
 	"crypto/subtle"
-	"fmt"
 	"time"
 
-	"go.uber.org/zap"
+	"github.com/rs/xid"
 )
 
 type secretType uint8
@@ -28,45 +27,45 @@ const (
 
 // Secret is a password or a recovery code.
 type Secret struct {
-	UUID         string
-	IdentityUUID string
-	Salt         string
-	Hash         string
-	HashedWith   string
-	Type         secretType
-	Used         time.Time
+	UUID       xid.ID
+	Identity   xid.ID
+	Salt       string
+	Hash       string
+	HashedWith string
+	Type       secretType
+	Used       time.Time
 }
 
 // Authenticate matches provided user and password to an indentity.
 func (acs *AccessControlSystem) Authenticate(ctx context.Context, user, password string) (s Session, err error) {
-	// Authenticator should be an interface!
-
 	// throttle attempts
 	// modulate time
 	// retrieve identity
 	// match the secret
 	// save against.Used
 	// start session
+	// attach role to session
+	// issue event
 	return
 }
 
 // Match checks if provided secret is valid.
 func (acs *AccessControlSystem) Match(secret string, against Secret) bool {
 	if against.Type == SecretDisabled {
-		acs.logger.Warn("identity attempted to authenticate with a disabled secret",
-			zap.String("identity", against.Identity.String()),
-			zap.String("secret", against.UUID.String()))
+		// acs.logger.Warn("identity attempted to authenticate with a disabled secret",
+		// 	zap.String("identity", against.Identity.String()),
+		// 	zap.String("secret", against.UUID.String()))
 		return false
 	}
 	hasher, ok := acs.hashers[against.HashedWith]
 	if !ok {
-		acs.logger.Error("authentication error",
-			zap.Error(fmt.Errorf("hasher %q is not registered", against.HashedWith)))
+		// acs.logger.Error("authentication error",
+		// 	zap.Error(fmt.Errorf("hasher %q is not registered", against.HashedWith)))
 		return false
 	}
-	acs.logger.Info("identity authenticated",
-		zap.String("identity", against.Identity.String()),
-		zap.String("secret", against.UUID.String()))
+	// acs.logger.Info("identity authenticated",
+	// 	zap.String("identity", against.Identity.String()),
+	// 	zap.String("secret", against.UUID.String()))
 	return 1 == subtle.ConstantTimeCompare(
 		[]byte(against.Hash), hasher.Hash([]byte(secret), []byte(against.Salt)))
 }
