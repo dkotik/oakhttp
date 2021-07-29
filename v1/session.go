@@ -8,6 +8,13 @@ import (
 	"github.com/rs/xid"
 )
 
+// SessionRepository persists Sessions.
+type SessionRepository interface {
+	SessionStart(ctx context.Context) (Session, error)
+	SessionMount(ctx context.Context, uuid xid.ID) (Session, error)
+	SessionEnd(ctx context.Context, uuid xid.ID) error
+}
+
 // Session connects an Identity to a combined list of allowed actions accessible to the Identity.
 type Session struct {
 	UUID     xid.ID

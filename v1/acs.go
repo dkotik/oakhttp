@@ -1,10 +1,18 @@
 package oakacs
 
 import (
+	"context"
 	"fmt"
 )
 
 type acsContextKeyType string
+
+type backend interface {
+	SessionRepository
+	PermissionsRepository
+
+	RetrieveIdentity(ctx context.Context, name string) (*Identity, error)
+}
 
 // NewAccessControlSystem sets up an access control system.
 func NewAccessControlSystem(withOptions ...Option) (*AccessControlSystem, error) {
@@ -44,10 +52,5 @@ type AccessControlSystem struct {
 
 	subscribers []chan<- (Event)
 	hashers     map[string]Hasher
-	// logger            *zap.Logger
+	backend     backend
 }
-
-// // Close cleans up loose ends.
-// func (acs *AccessControlSystem) Close() error {
-// 	return a.logger.Sync()
-// }

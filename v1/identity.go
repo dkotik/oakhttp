@@ -10,7 +10,7 @@ import (
 type Identity struct {
 	UUID              xid.ID
 	Name              string
-	Groups            []Group
+	Groups            []Group // the order matters for default roles
 	Secrets           []Secret
 	HumanityConfirmed time.Time
 }

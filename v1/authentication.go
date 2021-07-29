@@ -3,44 +3,28 @@ package oakacs
 import (
 	"context"
 	"crypto/subtle"
-	"time"
-
-	"github.com/rs/xid"
+	"fmt"
 )
 
-type secretType uint8
+// TODO: I should treat all secrets as tokens, hashed passwords should just present a token-like API.
+// TODO: AccessControlSystem Authenticate should also indicate the METHOD OF AUTH! and be matched with an authenticator. JUST ONE TOKEN PER AUTHENTICATOR?
 
-// The possible types of secrets:
-const (
-	SecretDisabled secretType = iota
-	SecretPrimaryPassword
-	SecretRecoveryCode
-	SecretOAuthToken
-)
-
-// const recoveryCodeLength = 64
-//
-// // Recovery holds a code that can restore access to an Identity.
-// type Recovery struct {
-// 	Code [recoveryCodeLength]byte
-// }
-
-// Secret is a password or a recovery code.
-type Secret struct {
-	UUID       xid.ID
-	Identity   xid.ID
-	Salt       string
-	Hash       string
-	HashedWith string
-	Type       secretType
-	Used       time.Time
+type Authenticator interface {
+	Authenticate(ctx context.Context, user *Identity, tokenOrPassword string) (err error)
 }
 
 // Authenticate matches provided user and password to an indentity.
-func (acs *AccessControlSystem) Authenticate(ctx context.Context, user, password string) (s Session, err error) {
+func (acs *AccessControlSystem) Authenticate(ctx context.Context, user, tokenOrPassword string) (s Session, err error) {
 	// throttle attempts
-	// modulate time
+
 	// retrieve identity
+	identity, err := acs.backend.RetrieveIdentity(ctx, user)
+	if err != nil {
+		// modulate time here to avoid betraying proof of existance
+		return Session{}, err
+	}
+	fmt.Println("got identity", identity)
+
 	// match the secret
 	// save against.Used
 	// start session

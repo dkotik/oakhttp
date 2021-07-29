@@ -11,15 +11,17 @@
 
 1. Humanity Recognition
 2. Throttling
+   - Prevent password-reuse?
 3. Timing modulation
 4. Registration
-5. Password policy
-   - Prevent password-reuse
-6. Authentication
-7. Authorization
-8. Revocation
-9. Recovery
-10. Logging
+5. Authentication
+   - Password policy
+   - Revocation
+   - Kill switch
+   - Recovery
+6. Authorization
+7. Observability
+   - Logging
 
 ## Model
 

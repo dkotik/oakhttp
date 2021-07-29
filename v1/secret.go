@@ -1,8 +1,40 @@
 package oakacs
 
 import (
+	"time"
+
+	"github.com/rs/xid"
 	"golang.org/x/crypto/argon2"
 )
+
+type secretType uint8
+
+// The possible types of secrets:
+const (
+	SecretDisabled secretType = iota // Disabled secrets are old passwords?
+	SecretPrimaryPassword
+	SecretExpiredPassword
+	SecretRecoveryCode
+	SecretOAuthToken
+)
+
+// const recoveryCodeLength = 64
+//
+// // Recovery holds a code that can restore access to an Identity.
+// type Recovery struct {
+// 	Code [recoveryCodeLength]byte
+// }
+
+// Secret is a password or a recovery code.
+type Secret struct {
+	UUID       xid.ID
+	Identity   xid.ID
+	Salt       string
+	Hash       string
+	HashedWith string
+	Type       secretType
+	Used       time.Time
+}
 
 // Hasher holds and applies a hashing algorythm with secure paramters. Returned hash should be the same length as the provided salt.
 type Hasher interface {

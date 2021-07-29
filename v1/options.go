@@ -2,6 +2,8 @@ package oakacs
 
 import (
 	"fmt"
+
+	"go.uber.org/zap"
 )
 
 // Option sets up the access control system with all its parameters.
@@ -30,7 +32,7 @@ func WithHasher(name string, hasher Hasher) Option {
 	}
 }
 
-// WithSubscribers adds subscribers to the ACS broadcasts.
+// WithSubscribers adds subscribers to the ACS broadcasts. Use buffered channels to avoid missing events, because the put is non-blocking.
 func WithSubscribers(c ...chan<- (Event)) Option {
 	return func(acs *AccessControlSystem) (err error) {
 		if acs.subscribers == nil {
@@ -44,15 +46,16 @@ func WithSubscribers(c ...chan<- (Event)) Option {
 }
 
 // WithLogger attaches a zap logger to the ACS.
-// func WithLogger(logger *zap.Logger) Option {
-// 	return func(acs *AccessControlSystem) (err error) {
-// 		if logger == nil {
-// 			logger, err = zap.NewDevelopment()
-// 			if err != nil {
-// 				return
-// 			}
-// 		}
-// 		acs.logger = logger
-// 		return
-// 	}
-// }
+func WithLogger(logger *zap.Logger) Option {
+	return func(acs *AccessControlSystem) (err error) {
+		if logger == nil {
+			logger, err = zap.NewDevelopment()
+			if err != nil {
+				return
+			}
+		}
+		// TODO: subscribe to events using a buffered channel and an adapter
+		// acs.logger = logger
+		return
+	}
+}

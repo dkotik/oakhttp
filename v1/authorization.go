@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/rs/xid"
 )
@@ -25,8 +26,6 @@ type PermissionsRepository interface {
 	PushPermissions(ctx context.Context, roleUUID xid.ID, deny []Permission, allow []Permission) error
 }
 
-var tempP PermissionsRepository
-
 // Authorize recovers the role from context, iterates through its permissions. Returns <nil> when one of the permissions matches and satisfies service, domain, resource, and action constraints.
 func (acs *AccessControlSystem) Authorize(
 	ctx context.Context,
@@ -37,13 +36,13 @@ func (acs *AccessControlSystem) Authorize(
 		return err
 	}
 	event := Event{
+		ctx:     ctx,
 		Type:    EventTypeAuthorizationAllowed,
 		Session: session.UUID,
 		Role:    session.Role,
 	}
 	defer func() {
 		if err != nil {
-			event.Type = EventTypeAuthorizationDenied
 			err = &ErrAuthorization{
 				Service:  service,
 				Domain:   domain,
@@ -55,7 +54,13 @@ func (acs *AccessControlSystem) Authorize(
 		}
 		acs.Broadcast(event)
 	}()
-	deny, allow, err := tempP.PullPermissions(ctx, session.Role)
+
+	if session.Deadline.After(time.Now()) {
+		event.Type = EventTypeSessionExpired
+		return errors.New("session expired")
+	}
+
+	deny, allow, err := acs.backend.PullPermissions(ctx, session.Role)
 	if err != nil {
 		return err
 	}
@@ -63,15 +68,18 @@ func (acs *AccessControlSystem) Authorize(
 	var p Permission
 	for _, p = range deny {
 		if p.Match(service, domain, resource, action) {
+			event.Type = EventTypeAuthorizationDeniedByPermission
 			return fmt.Errorf("permission explicitly denied by %s", p)
 		}
 	}
 	for _, p = range allow {
 		if p.Match(service, domain, resource, action) {
+			event.Type = EventTypeAuthorizationAllowed
 			// TODO: need to add context to passing events as well
 			return nil
 		}
 	}
+	event.Type = EventTypeAuthorizationDeniedByDefault
 	return errors.New("none of the permissions matched")
 }
 

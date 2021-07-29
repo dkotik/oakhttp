@@ -1,4 +1,4 @@
-package oakacs
+package manager
 
 import "context"
 
