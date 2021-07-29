@@ -1,6 +1,6 @@
 package oakacs
 
-// Source: https://siongui.github.io/2017/04/11/go-wildcard-pattern-matching/
+// Source: https://siongui.github.io/2017/04/11/go-wildcard-pattern-matching/ by Siong-Ui Te
 
 func stringToRuneSlice(s string) []rune {
 	var r []rune

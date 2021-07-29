@@ -2,10 +2,11 @@ package oakwords
 
 import (
 	"fmt"
+	"strings"
 )
 
 // FromBytes translates bytes into words using the default dictionary.
-func FromBytes(b []byte) []string {
+func FromBytes(b []byte) string {
 	if defaultDictionary == nil {
 		Use(Load(DictionaryEnglishNouns))
 	}
@@ -13,15 +14,15 @@ func FromBytes(b []byte) []string {
 	for i, u := range b {
 		result[i] = defaultDictionary[u]
 	}
-	return result
+	return strings.Join(result, " ")
 }
 
 // ToBytes translates words into bytes using the default dictionary.
-func ToBytes(words []string) ([]byte, error) {
+func ToBytes(words string) ([]byte, error) {
 	if defaultDictionary == nil {
 		Use(Load(DictionaryEnglishNouns))
 	}
-	return NewTranslator(defaultDictionary).Decode(words)
+	return NewTranslator(defaultDictionary).Decode(strings.Fields(words))
 }
 
 // NewTranslator sets up a dictionary for translating bytes to words and back. If nil dictionary is provided, the EnglishNouns dictionary is used by default.

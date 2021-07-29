@@ -60,7 +60,7 @@ func Load(name string) *Dictionary {
 	var i int
 	var word []byte
 	var result Dictionary
-	for i, word = range bytes.Split(b, []byte("\n")) {
+	for i, word = range bytes.Fields(b) {
 		result[i] = string(word)
 	}
 

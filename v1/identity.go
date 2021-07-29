@@ -14,3 +14,22 @@ type Identity struct {
 	Secrets           []Secret
 	HumanityConfirmed time.Time
 }
+
+// Group holds roles that identities may assume.
+type Group struct {
+	UUID            xid.ID
+	Name            string
+	DefaultRole     Role
+	AscendableRoles []Role
+}
+
+// Secret is a password or a recovery code.
+type Secret struct {
+	UUID          xid.ID
+	Identity      xid.ID
+	Authenticator string
+	Label         string
+	Token         string
+	Expires       time.Time
+	Used          time.Time
+}

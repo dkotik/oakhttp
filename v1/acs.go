@@ -3,6 +3,8 @@ package oakacs
 import (
 	"context"
 	"fmt"
+
+	"github.com/rs/xid"
 )
 
 type acsContextKeyType string
@@ -10,6 +12,9 @@ type acsContextKeyType string
 type backend interface {
 	SessionRepository
 	PermissionsRepository
+
+	RetrieveSecret(ctx context.Context, identity xid.ID, authenticator string) (*Secret, error)
+	UpdateSecret(ctx context.Context, secret *Secret) error
 
 	RetrieveIdentity(ctx context.Context, name string) (*Identity, error)
 }
@@ -24,15 +29,11 @@ func NewAccessControlSystem(withOptions ...Option) (*AccessControlSystem, error)
 	}()
 
 	acs := &AccessControlSystem{
-		hashers: make(map[string]Hasher, 1),
+		authenticators: make(map[string]Authenticator),
 	}
 	err = WithOptions(withOptions...)(acs)
 	if err != nil {
 		return nil, err
-	}
-	if _, ok := acs.hashers["default"]; !ok {
-		// TODO: confirm that those parameters are optimal
-		acs.hashers["default"] = NewHasherArgon2id(3, 64*1024, 4)
 	}
 
 	// Fill out defaults:
@@ -50,7 +51,7 @@ type AccessControlSystem struct {
 	//
 	TokenValidator *TokenValidator
 
-	subscribers []chan<- (Event)
-	hashers     map[string]Hasher
-	backend     backend
+	subscribers    []chan<- (Event)
+	authenticators map[string]Authenticator
+	backend        backend
 }

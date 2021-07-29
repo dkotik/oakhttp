@@ -21,13 +21,13 @@ func WithOptions(options ...Option) Option {
 	}
 }
 
-// WithHasher attaches possible secret hashers to the ACS.
-func WithHasher(name string, hasher Hasher) Option {
+// WithAuthenticator attaches possible authenticators to the ACS.
+func WithAuthenticator(name string, authenticator Authenticator) Option {
 	return func(acs *AccessControlSystem) (err error) {
-		if _, ok := acs.hashers[name]; ok {
-			return fmt.Errorf("hasher %q is already set", name)
+		if _, ok := acs.authenticators[name]; ok {
+			return fmt.Errorf("authenticator %q is already set", name)
 		}
-		acs.hashers[name] = hasher
+		acs.authenticators[name] = authenticator
 		return nil
 	}
 }

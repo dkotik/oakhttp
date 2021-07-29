@@ -20,8 +20,10 @@ const (
 	EventTypeUnknown = iota
 	// EventTypeSessionExpired marks a session that was checked past deadline.
 	EventTypeSessionExpired
-	// EventTypeAuthentication marks a role being succesffully connected to a session.
-	EventTypeAuthentication
+	// EventTypeAuthenticationSuccess marks a role being succesffully connected to a session.
+	EventTypeAuthenticationSuccess
+	// EventTypeAuthenticationFailure marks a role being succesffully connected to a session.
+	EventTypeAuthenticationFailure
 	// EventTypeAuthorizationAllowed marks a successful allowed Permission matched.
 	EventTypeAuthorizationAllowed
 	// EventTypeAuthorizationDeniedByPermission marks a matched denied Permission.
