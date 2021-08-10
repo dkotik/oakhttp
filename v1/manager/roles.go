@@ -9,8 +9,8 @@ import (
 
 // RoleRepository persists the roles.
 type RoleRepository interface {
-	CreateRole(ctx context.Context, name string) (*oakacs.Role, error)
-	RetrieveRole(ctx context.Context, uuid xid.ID) (*oakacs.Role, error)
+	CreateRole(context.Context, *oakacs.Role) error
+	RetrieveRole(context.Context, xid.ID) (*oakacs.Role, error)
 	UpdateRole(ctx context.Context, uuid xid.ID, update func(*oakacs.Role) error) error
-	DeleteRole(ctx context.Context, uuid xid.ID) error
+	DeleteRole(context.Context, xid.ID) error
 }

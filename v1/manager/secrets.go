@@ -16,10 +16,10 @@ const secretResource = "Secret"
 
 // SecretRepository persists secrets.
 type SecretRepository interface {
-	CreateSecret(ctx context.Context, name string) (*oakacs.Secret, error)
-	RetrieveSecret(ctx context.Context, uuid xid.ID) (*oakacs.Secret, error)
-	UpdateSecret(ctx context.Context, uuid xid.ID, update func(*oakacs.Secret) error) error
-	DeleteSecret(ctx context.Context, uuid xid.ID) error
+	CreateSecret(context.Context, *oakacs.Secret) error
+	RetrieveSecret(context.Context, xid.ID) (*oakacs.Secret, error)
+	UpdateSecret(context.Context, *oakacs.Secret) error
+	DeleteSecret(context.Context, xid.ID) error
 }
 
 // CreateSecret creates a new Secret.

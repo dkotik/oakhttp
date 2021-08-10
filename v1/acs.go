@@ -13,7 +13,7 @@ type backend interface {
 	SessionRepository
 	PermissionsRepository
 
-	RetrieveSecret(ctx context.Context, identity xid.ID, authenticator string) (*Secret, error)
+	RetrieveSecrets(ctx context.Context, identity xid.ID, authenticator string) ([]*Secret, error)
 	UpdateSecret(ctx context.Context, secret *Secret) error
 
 	RetrieveIdentity(ctx context.Context, name string) (*Identity, error)

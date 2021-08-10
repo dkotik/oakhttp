@@ -13,6 +13,7 @@ const (
 )
 
 type backend interface {
+	BanRepository
 	GroupRepository
 	SecretRepository
 	IntegrityLockRepository

@@ -36,8 +36,10 @@ const (
 
 func (e EventType) String() string {
 	switch e {
-	case EventTypeAuthentication:
-		return "authentication"
+	case EventTypeAuthenticationSuccess:
+		return "authenticated"
+	case EventTypeAuthenticationFailure:
+		return "rejected"
 	case EventTypeAuthorizationAllowed:
 		return "authorized"
 	case EventTypeAuthorizationDeniedByPermission:
