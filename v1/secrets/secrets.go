@@ -1,6 +1,13 @@
 package secrets
 
-import "context"
+import (
+	"context"
+	"errors"
+)
+
+var (
+	ErrSecretNotFound = errors.New("requested secret value does not exist")
+)
 
 type Repository interface {
 	SyncMap(name string) func(context.Context) (map[string]interface{}, error)
