@@ -18,7 +18,7 @@ const secretResource = "Secret"
 type SecretRepository interface {
 	CreateSecret(context.Context, *oakacs.Secret) error
 	RetrieveSecret(context.Context, xid.ID) (*oakacs.Secret, error)
-	UpdateSecret(context.Context, *oakacs.Secret) error
+	UpdateSecret(context.Context, xid.ID, func(*oakacs.Secret) error) error
 	DeleteSecret(context.Context, xid.ID) error
 }
 

@@ -10,9 +10,10 @@ import (
 
 // SessionRepository persists Sessions.
 type SessionRepository interface {
-	SessionStart(ctx context.Context) (Session, error)
-	SessionMount(ctx context.Context, uuid xid.ID) (Session, error)
-	SessionEnd(ctx context.Context, uuid xid.ID) error
+	CreateSession(context.Context, *Session) error
+	RetreiveSession(context.Context, xid.ID) (*Session, error)
+	UpdateSession(context.Context, xid.ID, func(*Session) error) error
+	DeleteSession(context.Context, xid.ID) error
 }
 
 // Session connects an Identity to a combined list of allowed actions accessible to the Identity.

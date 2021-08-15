@@ -1,7 +1,6 @@
 package secrets
 
 import (
-	"context"
 	"errors"
 )
 
@@ -10,8 +9,8 @@ var (
 )
 
 type Repository interface {
-	SyncMap(name string) func(context.Context) (map[string]interface{}, error)
-	SyncString(name string) func(context.Context) (string, error)
-	SyncUint(name string) func(context.Context) (uint, error)
-	SyncInt(name string) func(context.Context) (int, error)
+	SyncMap(name string) func() (map[string]interface{}, error)
+	SyncString(name string) func() (string, error)
+	SyncUint(name string) func() (uint, error)
+	SyncInt(name string) func() (int, error)
 }

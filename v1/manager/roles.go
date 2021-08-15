@@ -11,6 +11,6 @@ import (
 type RoleRepository interface {
 	CreateRole(context.Context, *oakacs.Role) error
 	RetrieveRole(context.Context, xid.ID) (*oakacs.Role, error)
-	UpdateRole(ctx context.Context, uuid xid.ID, update func(*oakacs.Role) error) error
+	UpdateRole(context.Context, xid.ID, func(*oakacs.Role) error) error
 	DeleteRole(context.Context, xid.ID) error
 }

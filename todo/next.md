@@ -19,6 +19,12 @@ ACS.Authorize(ctx, sessionUUID, action) error
 
 ## Need to add full Secrets Manager Interface
 
+## 3-Phase Login
+
+- Client requests salt after form is filled out
+- Server sends salt (signed with a time-limit), determenistically generated if client ID is missing, real salt if not, time-equalized both
+- Client hashes using the given salt, sends just the hash, never shares their password
+
 ## Timing attack mitigation
 
 - Implement time-constant comparison logic where possible
