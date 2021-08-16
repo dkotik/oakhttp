@@ -5,22 +5,10 @@ import (
 	"fmt"
 
 	"github.com/dkotik/oakacs/v1"
-	"github.com/dkotik/oakacs/v1/oakquery"
 	"github.com/rs/xid"
 )
 
 const groupResource = "group"
-
-// GroupRepository persists groups.
-type GroupRepository interface {
-	CreateGroup(context.Context, *oakacs.Group) error
-	RetrieveGroup(context.Context, xid.ID) (*oakacs.Group, error)
-	UpdateGroup(context.Context, xid.ID, func(*oakacs.Group) error) error
-	DeleteGroup(context.Context, xid.ID) error
-
-	ListGroups(context.Context, *oakquery.Query) ([]oakacs.Group, error)
-	ListGroupMembers(context.Context, *oakquery.Query) ([]Identity, error)
-}
 
 // CreateGroup creates a new group.
 func (m *Manager) CreateGroup(ctx context.Context, name string) (*oakacs.Group, error) {

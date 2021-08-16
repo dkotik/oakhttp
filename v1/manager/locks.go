@@ -7,13 +7,6 @@ import (
 	"github.com/rs/xid"
 )
 
-// IntegrityLock preserves data integrity by making sure relevant resources do not disappear. For example, an Identity cannot be added to a Group, if that Group has been removed right away. The lock helps prevent such conditions.
-type IntegrityLockRepository interface {
-	Lock(context.Context, xid.ID...) error // requires unique constraint on the table
-	Unlock(context.Context, xid.ID...) error
-    PurgeLocks(context.Context) error
-}
-
 type ErrIntegrityLockDenied struct {
 	UUID xid.ID
 }

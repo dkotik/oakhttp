@@ -9,14 +9,17 @@ import "github.com/dkotik/oakacs/v1"
 
 const (
 	service = "oakacs"
-	domain  = "universal"
+	RD      = "read" // TODO: move RD and WR to oakacs?
+	WR      = "write"
+	// domain  = "universal"
 )
 
 type backend interface {
-	BanRepository
-	GroupRepository
-	SecretRepository
-	IntegrityLockRepository
+	oakacs.BanRepository
+	oakacs.GroupRepository
+	oakacs.SecretRepository
+	oakacs.RoleRepository
+	oakacs.IntegrityLockRepository
 }
 
 // Manager provides the facility to persist all the data necessary for the Oak Access Control System.

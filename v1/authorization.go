@@ -18,7 +18,10 @@ type ErrAuthorization struct {
 	Cause    error
 }
 
-// TODO: add unwrap method?
+func (e *ErrAuthorization) Unwrap() error {
+	return e.Cause
+}
+
 func (e *ErrAuthorization) Error() string { return "access denied" }
 
 type PermissionsRepository interface {

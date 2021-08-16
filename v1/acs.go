@@ -53,5 +53,6 @@ type AccessControlSystem struct {
 
 	subscribers    []chan<- (Event)
 	authenticators map[string]Authenticator
+	ephemeral      EphemeralRepository
 	backend        backend
 }
