@@ -33,5 +33,5 @@ func (p Permission) Match(service, domain, resource, action string) bool {
 }
 
 func (p Permission) String() string {
-	return fmt.Sprintf("%s::%s::s", p.Domain, p.Action, p.Resource)
+	return fmt.Sprintf("%s::%s::%s", p.Domain, p.Action, p.Resource)
 }

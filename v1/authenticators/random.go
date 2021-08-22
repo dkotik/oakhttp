@@ -1,4 +1,4 @@
-package oakacs
+package authenticators
 
 import (
 	"crypto/rand"

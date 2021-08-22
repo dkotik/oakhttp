@@ -1,10 +1,7 @@
 package oakmanager
 
-package oakmanager
-
 import (
 	"context"
-	"fmt"
 
 	"github.com/dkotik/oakacs/v1"
 	"github.com/rs/xid"
@@ -15,7 +12,7 @@ const secretResource = "secrets"
 // TODO: secrets are not supposed to be managed?
 
 // CreateSecret creates a new Secret.
-func (m *Manager) CreateSecret(ctx context.Context, *oakacs.Secret) error {
+func (m *Manager) CreateSecret(ctx context.Context, secret *oakacs.Secret) error {
 	if err := m.acs.Authorize(ctx, ACSService, DomainUniversal, secretResource, WR); err != nil {
 		return err
 	}

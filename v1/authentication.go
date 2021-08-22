@@ -2,7 +2,6 @@ package oakacs
 
 import (
 	"context"
-	"errors"
 	"fmt"
 )
 
@@ -30,10 +29,10 @@ func (acs *AccessControlSystem) Authenticate(ctx context.Context, user, tokenOrP
 	}()
 	// throttle attempts by user
 
-	auth, ok := acs.authenticators[authenticator]
-	if !ok {
-		return nil, errors.New("chosen authenticator is not active")
-	}
+	// auth, ok := acs.authenticators[authenticator]
+	// if !ok {
+	// 	return nil, errors.New("chosen authenticator is not active")
+	// }
 
 	// // retrieve identity
 	// identity, err := acs.persistent.RetrieveIdentity(ctx, user)

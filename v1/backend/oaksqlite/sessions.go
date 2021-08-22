@@ -4,6 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
+
+	"github.com/rs/xid"
 	// "github.com/dkotik/oakacs/v1"
 )
 
@@ -16,6 +19,7 @@ type sessions struct {
 	updateRole          *sql.Stmt
 	updateValues        *sql.Stmt
 	delete              *sql.Stmt
+	clean               *sql.Stmt
 }
 
 func (s *sessions) setup(table string, db *sql.DB) (err error) {
@@ -48,6 +52,10 @@ func (s *sessions) setup(table string, db *sql.DB) (err error) {
 	if s.delete, err = db.Prepare(fmt.Sprintf("DELETE FROM `%s` WHERE uuid=?", table)); err != nil {
 		return
 	}
+	if s.clean, err = db.Prepare(fmt.Sprintf("DELETE FROM `%s` WHERE deadline<?", table)); err != nil {
+		return
+	}
+
 	return nil
 }
 
@@ -61,4 +69,19 @@ func (s *sessions) Create(ctx context.Context) error {
 	// Values         map[string]interface{}
 
 	return nil
+}
+
+func (s *sessions) DeleteSession(ctx context.Context, id xid.ID) (err error) {
+	if _, err = s.delete.ExecContext(ctx, id); err != nil {
+		return err
+	}
+	return err
+}
+
+func (s *sessions) Clean(ctx context.Context, deadline time.Time) (int64, error) {
+	result, err := s.clean.ExecContext(ctx, deadline)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

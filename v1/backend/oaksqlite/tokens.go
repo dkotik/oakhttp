@@ -8,12 +8,11 @@ import (
 	"fmt"
 	"time"
 
-	// "github.com/dkotik/oakacs/v1"
-
+	"github.com/dkotik/oakacs/v1"
 	"github.com/rs/xid"
 )
 
-// var _ oakacs.TokenRepository = (*oakacs.TokenRepository)(nil)
+var _ oakacs.TokenRepository = (*tokens)(nil)
 
 type tokens struct {
 	create   *sql.Stmt
@@ -72,7 +71,7 @@ func (t *tokens) RetrieveAndDeleteToken(ctx context.Context, key string) (string
 }
 
 func (t *tokens) Clean(ctx context.Context, deadline time.Time) (int64, error) {
-	result, err := t.delete.ExecContext(ctx, deadline)
+	result, err := t.clean.ExecContext(ctx, deadline)
 	if err != nil {
 		return 0, err
 	}

@@ -30,7 +30,7 @@ type PersistentRepository interface {
 type IntegrityLockRepository interface {
 	Lock(context.Context, ...xid.ID) error // requires unique constraint on the table
 	Unlock(context.Context, ...xid.ID) error
-	PurgeLocks(context.Context) error
+	// PurgeLocks(context.Context) error // clean up implementation is up to driver
 }
 
 // IdentityRepository persists identities.
@@ -46,7 +46,7 @@ type IdentityRepository interface {
 // SessionRepository persists Sessions.
 type SessionRepository interface {
 	CreateSession(context.Context, *Session) error
-	RetreiveSession(context.Context, xid.ID) (*Session, error)
+	RetrieveSession(context.Context, xid.ID) (*Session, error)
 	// Only role, last retrieved, and values can actually change.
 	UpdateSession(context.Context, xid.ID, func(*Session) error) error
 	// UpdateSessionRole(context.Context, xid.ID, xid.ID) error
@@ -67,12 +67,12 @@ type GroupRepository interface {
 
 // RoleRepository persists the roles.
 type RoleRepository interface {
-	CreateRole(context.Context, *Role) error
+	CreateRole(context.Context, *Role) (xid.ID, error)
 	RetrieveRole(context.Context, xid.ID) (*Role, error)
 	UpdateRole(context.Context, xid.ID, func(*Role) error) error
 	DeleteRole(context.Context, xid.ID) error
 
-	ListRoles(context.Context, *oakquery.Query) ([]Role, error)
+	// QueryRoles(context.Context, *oakquery.Query) ([]Role, error)
 }
 
 // SecretRepository persists secrets.
@@ -88,10 +88,10 @@ type SecretRepository interface {
 type BanRepository interface {
 	CreateBan(context.Context, *Ban) error
 	RetrieveBan(context.Context, xid.ID) (*Ban, error)
-	UpdateBan(context.Context, xid.ID, func(*Ban) error) error
+	// UpdateBan(context.Context, xid.ID, func(*Ban) error) error
 	DeleteBan(context.Context, xid.ID) error
 
-	ListBans(context.Context, *oakquery.Query) ([]Ban, error)
+	QueryBans(context.Context, *oakquery.Query) ([]Ban, error)
 }
 
 type TokenRepository interface {
