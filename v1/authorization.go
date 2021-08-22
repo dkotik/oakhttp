@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/rs/xid"
 )
@@ -34,7 +33,7 @@ func (acs *AccessControlSystem) Authorize(
 	ctx context.Context,
 	service, domain, resource, action string,
 ) (err error) {
-	session, err := acs.SessionFrom(ctx)
+	session, err := acs.SessionContinue(ctx)
 	if err != nil {
 		return err
 	}
@@ -58,12 +57,12 @@ func (acs *AccessControlSystem) Authorize(
 		acs.Broadcast(event)
 	}()
 
-	if session.Deadline.After(time.Now()) {
-		event.Type = EventTypeSessionExpired
-		return errors.New("session expired")
-	}
+	// if session.Deadline.After(time.Now()) {
+	// 	event.Type = EventTypeSessionExpired
+	// 	return errors.New("session expired")
+	// }
 
-	deny, allow, err := acs.backend.PullPermissions(ctx, session.Role)
+	deny, allow, err := acs.persistent.PullPermissions(ctx, session.Role)
 	if err != nil {
 		return err
 	}

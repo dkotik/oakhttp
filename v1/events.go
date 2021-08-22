@@ -8,9 +8,11 @@ import (
 	"github.com/rs/xid"
 )
 
-// EventType resprents the kind of events that the ACS may issue.
-type EventType uint8
-type eventContextKeyType string
+type (
+	// EventType resprents the kind of events that the ACS may issue.
+	EventType           uint8
+	eventContextKeyType string
+)
 
 const (
 	eventContextKeyIP         eventContextKeyType = "ip"
@@ -20,6 +22,8 @@ const (
 	EventTypeUnknown = iota
 	// EventTypeSessionExpired marks a session that was checked past deadline.
 	EventTypeSessionExpired
+	// EventTypeSessionBreached occurs when an attempt to overtake session was detected.
+	EventTypeSessionBreached
 	// EventTypeAuthenticationSuccess marks a role being succesffully connected to a session.
 	EventTypeAuthenticationSuccess
 	// EventTypeAuthenticationFailure marks a role being succesffully connected to a session.
@@ -32,6 +36,8 @@ const (
 	EventTypeAuthorizationDeniedByDefault
 	// EventTypeMaintenance marks clean up and debugging tasks.
 	EventTypeMaintenance
+	// EventTypeCriticalRepositoryFailure marks a failed critical modification to a backend repository.
+	EventTypeCriticalRepositoryFailure
 )
 
 func (e EventType) String() string {

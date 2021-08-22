@@ -35,31 +35,31 @@ func (acs *AccessControlSystem) Authenticate(ctx context.Context, user, tokenOrP
 		return nil, errors.New("chosen authenticator is not active")
 	}
 
-	// retrieve identity
-	identity, err := acs.backend.RetrieveIdentity(ctx, user)
-	if err != nil {
-		// modulate time here to avoid betraying proof of existance
-		// compare to a random string to modulate?
-		return nil, err
-	}
-
-	secrets, err := acs.backend.RetrieveSecrets(ctx, identity.UUID, authenticator)
-	if err != nil {
-		return nil, err
-	}
-	// if secret.Expires.After(time.Now()) {
-	// 	return nil, errors.New("existing access token is expired")
+	// // retrieve identity
+	// identity, err := acs.persistent.RetrieveIdentity(ctx, user)
+	// if err != nil {
+	// 	// modulate time here to avoid betraying proof of existance
+	// 	// compare to a random string to modulate?
+	// 	return nil, err
 	// }
-
-	if err = auth.Compare(ctx, tokenOrPassword, secrets); err != nil {
-		// TODO: this is a deep error, should it be a different type?
-		// for time-modulation?
-		return nil, err
-	}
-	// secret.Used = time.Now()
-	// if err = acs.backend.UpdateSecret(ctx, secret); err != nil {
-	// 	return
+	//
+	// secrets, err := acs.persistent.RetrieveSecret(ctx, identity.UUID, authenticator)
+	// if err != nil {
+	// 	return nil, err
 	// }
+	// // if secret.Expires.After(time.Now()) {
+	// // 	return nil, errors.New("existing access token is expired")
+	// // }
+
+	// if err = auth.Compare(ctx, tokenOrPassword, secrets); err != nil {
+	// 	// TODO: this is a deep error, should it be a different type?
+	// 	// for time-modulation?
+	// 	return nil, err
+	// }
+	// // secret.Used = time.Now()
+	// // if err = acs.backend.UpdateSecret(ctx, secret); err != nil {
+	// // 	return
+	// // }
 
 	// start session
 	// attach role to session

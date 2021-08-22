@@ -1,24 +1,36 @@
-package oacacs
+package oakacs
 
 import (
 	"context"
-	"time"
 
+	"github.com/dkotik/oakacs/v1/oakquery"
 	"github.com/rs/xid"
-    "github.com/dkotik/oakacs/v1/oakquery"
 )
 
-// EphemeralRepository is an abstraction over key/value pair storage for serialized short-lived expiring objects like Sessions.
+// EphemeralRepository keeps short-lived expiring objects like Sessions.
 type EphemeralRepository interface {
-	Push(context.Context, string, time.Time, interface{}) error
-	Pull(context.Context, string) (interface{}, error)
+	// TODO: should this be an abstraction over key/value pair storage for serialized push/pull?
+	// Push(context.Context, string, time.Time, interface{}) error
+	// Pull(context.Context, string) (interface{}, error)
+	SessionRepository
+	IntegrityLockRepository
+	TokenRepository
+}
+
+// PersistentRepository keep permanent objects like Identities.
+type PersistentRepository interface {
+	IdentityRepository
+	GroupRepository
+	RoleRepository
+	SecretRepository
+	BanRepository
 }
 
 // IntegrityLock preserves data integrity by making sure relevant resources do not disappear. For example, an Identity cannot be added to a Group, if that Group has been removed right away. The lock helps prevent such conditions.
 type IntegrityLockRepository interface {
-	Lock(context.Context, xid.ID...) error // requires unique constraint on the table
-	Unlock(context.Context, xid.ID...) error
-    PurgeLocks(context.Context) error
+	Lock(context.Context, ...xid.ID) error // requires unique constraint on the table
+	Unlock(context.Context, ...xid.ID) error
+	PurgeLocks(context.Context) error
 }
 
 // IdentityRepository persists identities.
@@ -29,6 +41,17 @@ type IdentityRepository interface {
 	DeleteIdentity(context.Context, xid.ID) error
 
 	ListIdentities(context.Context, *oakquery.Query) ([]Identity, error)
+}
+
+// SessionRepository persists Sessions.
+type SessionRepository interface {
+	CreateSession(context.Context, *Session) error
+	RetreiveSession(context.Context, xid.ID) (*Session, error)
+	// Only role, last retrieved, and values can actually change.
+	UpdateSession(context.Context, xid.ID, func(*Session) error) error
+	// UpdateSessionRole(context.Context, xid.ID, xid.ID) error
+	// UpdateSessionValues(context.Context, xid.ID, map[string]interface{}) error
+	DeleteSession(context.Context, xid.ID) error
 }
 
 // GroupRepository persists groups.
@@ -69,4 +92,9 @@ type BanRepository interface {
 	DeleteBan(context.Context, xid.ID) error
 
 	ListBans(context.Context, *oakquery.Query) ([]Ban, error)
+}
+
+type TokenRepository interface {
+	CreateToken(ctx context.Context, value string) (key string, err error)
+	RetrieveAndDeleteToken(ctx context.Context, key string) (value string, err error)
 }

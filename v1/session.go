@@ -9,27 +9,61 @@ import (
 	"github.com/rs/xid"
 )
 
-// SessionRepository persists Sessions.
-type SessionRepository interface {
-	CreateSession(context.Context, *Session) error
-	RetreiveSession(context.Context, xid.ID) (*Session, error)
-	UpdateSession(context.Context, xid.ID, func(*Session) error) error
-	DeleteSession(context.Context, xid.ID) error
+type (
+	sessionContextKeyType string
+
+	// Session connects an Identity to a combined list of allowed actions accessible to the Identity.
+	Session struct {
+		UUID           xid.ID
+		Differentiator string // to prevent session ID guessing
+		Identity       xid.ID
+		Role           xid.ID
+		Created        time.Time
+		LastRetrieved  time.Time
+		Values         map[string]interface{}
+	}
+)
+
+// SessionBind retrieves the Session from ephemeral storage and binds it to context.
+func (acs *AccessControlSystem) SessionBind(
+	ctx context.Context, id xid.ID, differentiator string,
+) (context.Context, error) {
+	session, error := acs.ephemeral.RetrieveSession(ctx, id)
+	if error != nil {
+		return fmt.Errorf("cannot retrieve session: %w", err)
+	}
+	if session.Differentiator != differentiator {
+		err = errors.New("session breached: differentiator did not match")
+		acs.Broadcast(&Event{
+			Type:     EventTypeSessionBreached,
+			Service:  "oakacs",
+			Domain:   "universal",
+			Resource: id.String(),
+			Action:   "bind",
+			Cause:    err,
+		})
+		if rerr := acs.ephemeral.DeleteSession(ctx, id); rerr != nil {
+			if rerr = acs.ephemeral.DeleteSession(ctx, id); rerr != nil { // retry
+				acs.Broadcast(&Event{
+					Type:     EventTypeCriticalRepositoryFailure,
+					Service:  "oakacs",
+					Domain:   "universal",
+					Resource: id.String(),
+					Action:   "bind",
+					Cause:    rerr,
+				})
+			}
+		}
+		return nil, err
+	}
+	// TODO: check deadline
+	// TODO: check activity deadline
+	return context.WithValue(ctx, acs.sessionContextKeyType, s), nil
 }
 
-// Session connects an Identity to a combined list of allowed actions accessible to the Identity.
-type Session struct {
-	UUID           xid.ID
-	Differentiator [32]byte // to prevent session ID guessing
-	Identity       xid.ID
-	Role           xid.ID
-	Deadline       time.Time
-	Values         map[string]interface{}
-}
-
-// SessionFrom retrieves the session state from context.
-func (acs *AccessControlSystem) SessionFrom(ctx context.Context) (Session, error) {
-	switch s := ctx.Value(acs.sessionContextKey).(type) {
+// SessionContinue retrieves the session state from context.
+func (acs *AccessControlSystem) SessionContinue(ctx context.Context) (Session, error) {
+	switch s := ctx.Value(acs.sessionContextKeyType).(type) {
 	case Session:
 		return s, nil
 	default:

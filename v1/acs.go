@@ -1,23 +1,8 @@
 package oakacs
 
 import (
-	"context"
 	"fmt"
-
-	"github.com/rs/xid"
 )
-
-type acsContextKeyType string
-
-type backend interface {
-	SessionRepository
-	PermissionsRepository
-
-	RetrieveSecrets(ctx context.Context, identity xid.ID, authenticator string) ([]*Secret, error)
-	UpdateSecret(ctx context.Context, secret *Secret) error
-
-	RetrieveIdentity(ctx context.Context, name string) (*Identity, error)
-}
 
 // NewAccessControlSystem sets up an access control system.
 func NewAccessControlSystem(withOptions ...Option) (*AccessControlSystem, error) {
@@ -46,13 +31,11 @@ func NewAccessControlSystem(withOptions ...Option) (*AccessControlSystem, error)
 
 // AccessControlSystem manages sessions.
 type AccessControlSystem struct {
-	sessionContextKey acsContextKeyType
-	// Backend?
-	//
-	TokenValidator *TokenValidator
+	sessionContextKey sessionContextKeyType
+	TokenValidator    *TokenValidator
 
 	subscribers    []chan<- (Event)
 	authenticators map[string]Authenticator
 	ephemeral      EphemeralRepository
-	backend        backend
+	persistent     PermissionsRepository
 }
