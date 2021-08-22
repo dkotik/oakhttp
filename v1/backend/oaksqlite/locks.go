@@ -10,7 +10,23 @@ import (
 	"github.com/rs/xid"
 )
 
-var _ oakacs.IntegrityLockRepository = (*locks)(nil)
+func NewIntegrityLockRepository(table string, db *sql.DB) (oakacs.IntegrityLockRepository, error) {
+	l := &locks{db: db}
+	var err error
+	if _, err = db.Exec(fmt.Sprintf("CREATE TABLE IF NOT EXISTS `%s` (id BLOB UNIQUE, deadline INTEGER)", table)); err != nil {
+		return nil, err
+	}
+	if l.create, err = db.Prepare(fmt.Sprintf("INSERT INTO `%s` VALUES(?,?)", table)); err != nil {
+		return nil, err
+	}
+	if l.delete, err = db.Prepare(fmt.Sprintf("DELETE FROM `%s` WHERE id=?", table)); err != nil {
+		return nil, err
+	}
+	if l.clean, err = db.Prepare(fmt.Sprintf("DELETE FROM `%s` WHERE deadline<?", table)); err != nil {
+		return nil, err
+	}
+	return l, nil
+}
 
 type locks struct {
 	db     *sql.DB
@@ -19,26 +35,7 @@ type locks struct {
 	clean  *sql.Stmt
 }
 
-func (l *locks) setup(table string, db *sql.DB) (err error) {
-	// Lock(context.Context, ...xid.ID) error // requires unique constraint on the table
-	// Unlock(context.Context, ...xid.ID) error
-	l.db = db
-	if _, err = db.Exec(fmt.Sprintf("CREATE TABLE IF NOT EXISTS `%s` (id BLOB UNIQUE, deadline INTEGER)", table)); err != nil {
-		return
-	}
-	if l.create, err = db.Prepare(fmt.Sprintf("INSERT INTO `%s` VALUES(?,?)", table)); err != nil {
-		return
-	}
-	if l.delete, err = db.Prepare(fmt.Sprintf("DELETE FROM `%s` WHERE id=?", table)); err != nil {
-		return
-	}
-	if l.clean, err = db.Prepare(fmt.Sprintf("DELETE FROM `%s` WHERE deadline<?", table)); err != nil {
-		return
-	}
-	return nil
-}
-
-func (l *locks) Lock(ctx context.Context, ids ...xid.ID) error {
+func (l *locks) Lock(ctx context.Context, timeout time.Duration, ids ...xid.ID) error {
 	tx, err := l.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -46,7 +43,7 @@ func (l *locks) Lock(ctx context.Context, ids ...xid.ID) error {
 
 	for _, id := range ids {
 		create := tx.StmtContext(ctx, l.create)
-		if _, err := create.ExecContext(ctx, id, time.Now().Add(time.Hour)); err != nil {
+		if _, err := create.ExecContext(ctx, id, timeout); err != nil {
 			tx.Rollback()
 			return err
 		}

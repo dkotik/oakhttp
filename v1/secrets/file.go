@@ -2,9 +2,7 @@ package secrets
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"os"
 )
 
 type fileRepository struct {
@@ -68,14 +66,14 @@ func (f *fileRepository) SyncInt(name string) func(context.Context) (int, error)
 	}
 }
 
-func FromFileJSON(p string) (Repository, error) {
-	data, err := os.ReadFile(p)
-	if err != nil {
-		return nil, err
-	}
-	values := make(map[string]interface{})
-	if err = json.Unmarshal(data, &values); err != nil {
-		return nil, err
-	}
-	return &fileRepository{values}, nil
-}
+// func FromFileJSON(p string) (Repository, error) {
+// 	data, err := os.ReadFile(p)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	values := make(map[string]interface{})
+// 	if err = json.Unmarshal(data, &values); err != nil {
+// 		return nil, err
+// 	}
+// 	return &fileRepository{values}, nil
+// }

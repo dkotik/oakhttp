@@ -1,8 +1,6 @@
 package authenticators
 
-import "github.com/dkotik/oakacs/v1"
-
-var _ oakacs.Authenticator = (*Password)(nil)
+// var _ oakacs.Authenticator = (*Password)(nil)
 
 // Register(ctx context.Context, tokenOrPassword string) (*Secret, error)
 // Compare(ctx context.Context, tokenOrPassword string, secret *Secret) error

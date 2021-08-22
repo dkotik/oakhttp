@@ -10,17 +10,18 @@ import (
 
 func TestTokens(t *testing.T) {
 	ctx := context.Background()
-	driver := &tokens{}
-	if err := driver.setup("tokens", db); err != nil {
+	repo, err := NewTokenRepository("tokens", db)
+	if err != nil {
 		t.Fatal(err)
 	}
+	driver := repo.(*tokens)
 
-	key, err := driver.CreateToken(ctx, "payload")
+	key, err := driver.Create(ctx, "payload")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	v, err := driver.RetrieveAndDeleteToken(ctx, key)
+	v, err := driver.RetrieveAndDelete(ctx, key)
 	if err != nil {
 		t.Fatal(err)
 	}

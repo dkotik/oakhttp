@@ -12,7 +12,26 @@ import (
 	"github.com/rs/xid"
 )
 
-var _ oakacs.TokenRepository = (*tokens)(nil)
+func NewTokenRepository(table string, db *sql.DB) (oakacs.TokenRepository, error) {
+	t := &tokens{}
+	var err error
+	if _, err = db.Exec(fmt.Sprintf("CREATE TABLE IF NOT EXISTS `%s` (key TEXT, value TEXT, deadline INTEGER)", table)); err != nil {
+		return nil, err
+	}
+	if t.create, err = db.Prepare(fmt.Sprintf("INSERT INTO `%s` VALUES(?,?,?)", table)); err != nil {
+		return nil, err
+	}
+	if t.retrieve, err = db.Prepare(fmt.Sprintf("SELECT value FROM `%s` WHERE key=?", table)); err != nil {
+		return nil, err
+	}
+	if t.delete, err = db.Prepare(fmt.Sprintf("DELETE FROM `%s` WHERE key=?", table)); err != nil {
+		return nil, err
+	}
+	if t.clean, err = db.Prepare(fmt.Sprintf("DELETE FROM `%s` WHERE deadline<?", table)); err != nil {
+		return nil, err
+	}
+	return t, nil
+}
 
 type tokens struct {
 	create   *sql.Stmt
@@ -21,26 +40,7 @@ type tokens struct {
 	clean    *sql.Stmt
 }
 
-func (t *tokens) setup(table string, db *sql.DB) (err error) {
-	if _, err = db.Exec(fmt.Sprintf("CREATE TABLE IF NOT EXISTS `%s` (key TEXT, value TEXT, deadline INTEGER)", table)); err != nil {
-		return
-	}
-	if t.create, err = db.Prepare(fmt.Sprintf("INSERT INTO `%s` VALUES(?,?,?)", table)); err != nil {
-		return
-	}
-	if t.retrieve, err = db.Prepare(fmt.Sprintf("SELECT value FROM `%s` WHERE key=?", table)); err != nil {
-		return
-	}
-	if t.delete, err = db.Prepare(fmt.Sprintf("DELETE FROM `%s` WHERE key=?", table)); err != nil {
-		return
-	}
-	if t.clean, err = db.Prepare(fmt.Sprintf("DELETE FROM `%s` WHERE deadline<?", table)); err != nil {
-		return
-	}
-	return nil
-}
-
-func (t *tokens) CreateToken(ctx context.Context, v string) (string, error) {
+func (t *tokens) Create(ctx context.Context, v string) (string, error) {
 	x := make([]byte, 16)
 	if n, err := rand.Reader.Read(x); err != nil {
 		return "", err
@@ -54,7 +54,7 @@ func (t *tokens) CreateToken(ctx context.Context, v string) (string, error) {
 	return id, nil
 }
 
-func (t *tokens) RetrieveAndDeleteToken(ctx context.Context, key string) (string, error) {
+func (t *tokens) RetrieveAndDelete(ctx context.Context, key string) (string, error) {
 	row := t.retrieve.QueryRowContext(ctx, key)
 	err := row.Err()
 	if err != nil {

@@ -28,7 +28,7 @@ type (
 func (acs *AccessControlSystem) SessionBind(
 	ctx context.Context, id xid.ID, differentiator string,
 ) (context.Context, error) {
-	session, err := acs.ephemeral.RetrieveSession(ctx, id)
+	session, err := acs.ephemeral.Sessions.Retrieve(ctx, id)
 	if err != nil {
 		return ctx, fmt.Errorf("cannot retrieve session: %w", err)
 	}
@@ -42,8 +42,8 @@ func (acs *AccessControlSystem) SessionBind(
 			Role:    session.Role,
 			Error:   err,
 		})
-		if rerr := acs.ephemeral.DeleteSession(ctx, id); rerr != nil {
-			if rerr = acs.ephemeral.DeleteSession(ctx, id); rerr != nil { // retry
+		if rerr := acs.ephemeral.Sessions.Delete(ctx, id); rerr != nil {
+			if rerr = acs.ephemeral.Sessions.Delete(ctx, id); rerr != nil { // retry
 				acs.Broadcast(Event{
 					ctx:     ctx,
 					When:    time.Now(),
@@ -72,10 +72,10 @@ func (acs *AccessControlSystem) SessionContinue(ctx context.Context) (Session, e
 	}
 }
 
-// Bind rolls session into the provided context with deadline.
-func (acs *AccessControlSystem) bind(ctx context.Context, s Session) context.Context {
-	return context.WithValue(ctx, acs.sessionContextKey, s)
-}
+// // Bind rolls session into the provided context with deadline.
+// func (acs *AccessControlSystem) bind(ctx context.Context, s Session) context.Context {
+// 	return context.WithValue(ctx, acs.sessionContextKey, s)
+// }
 
 func (acs *AccessControlSystem) PushSession() {}
 func (acs *AccessControlSystem) PullSession() {}
