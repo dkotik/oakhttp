@@ -13,4 +13,7 @@ func init() {
 		panic(err)
 	}
 	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
+	db.SetConnMaxIdleTime(0)
+	db.SetConnMaxLifetime(0)
 }

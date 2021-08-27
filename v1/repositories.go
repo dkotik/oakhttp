@@ -41,7 +41,8 @@ type IdentityRepository interface {
 	Update(context.Context, xid.ID, func(*Identity) error) error
 	Delete(context.Context, xid.ID) error
 
-	Query(context.Context, *oakquery.Query) ([]Identity, error)
+	// Query(context.Context, *oakquery.Query) ([]Identity, error)
+	// ListMembers(context.Context, *oakquery.Query) ([]Identity, error)
 }
 
 // SessionRepository persists Sessions.
@@ -62,8 +63,7 @@ type GroupRepository interface {
 	Update(context.Context, xid.ID, func(*Group) error) error
 	Delete(context.Context, xid.ID) error
 
-	Query(context.Context, *oakquery.Query) ([]Group, error)
-	ListMembers(context.Context, *oakquery.Query) ([]Identity, error)
+	// Query(context.Context, *oakquery.Query) ([]Group, error)
 }
 
 // RoleRepository persists the roles.

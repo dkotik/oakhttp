@@ -2,10 +2,8 @@ package oakmanager
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/dkotik/oakacs/v1"
-	"github.com/dkotik/oakacs/v1/oakquery"
 	"github.com/rs/xid"
 )
 
@@ -43,14 +41,14 @@ func (m *Manager) DeleteGroup(ctx context.Context, uuid xid.ID) (err error) {
 	if err != nil {
 		return
 	}
-	members, err := m.persistent.Groups.ListMembers(ctx, &oakquery.Query{
-		PerPage: 5000,
-	})
-	if err != nil {
-		return
-	}
-	if l := len(members); l > 0 {
-		return fmt.Errorf("cannot delete a group because it has %d members", l)
-	}
+	// members, err := m.persistent.Groups.ListMembers(ctx, &oakquery.Query{
+	// 	PerPage: 5000,
+	// })
+	// if err != nil {
+	// 	return
+	// }
+	// if l := len(members); l > 0 {
+	// 	return fmt.Errorf("cannot delete a group because it has %d members", l)
+	// }
 	return m.persistent.Groups.Delete(ctx, uuid)
 }
