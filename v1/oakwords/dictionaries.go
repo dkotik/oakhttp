@@ -1,14 +1,12 @@
 package oakwords
 
 import (
-	"bytes"
-	"embed"
 	"errors"
 	"fmt"
-	"io/fs"
-	"path"
 	"strings"
 )
+
+//go:generate go run dictionaries_generate.go --source dictionaries/english-nouns.txt --destination dict_english_nouns.gen.go --variable EnglishFourLetterNouns
 
 // Dictionary holds 256 words, each corresponding to a byte value.
 type Dictionary [256]string
@@ -45,28 +43,26 @@ const (
 )
 
 var (
-	//go:embed dictionaries/english-nouns.txt
-	embededDictionaries embed.FS
-	defaultDictionary   *Dictionary
+	defaultDictionary = &EnglishFourLetterNouns
 )
 
-// Load retrieves an embedded dictionary and parses it.
-func Load(name string) *Dictionary {
-	b, err := fs.ReadFile(embededDictionaries, path.Join("dictionaries", name))
-	if err != nil {
-		panic(err)
-	}
-
-	var i int
-	var word []byte
-	var result Dictionary
-	for i, word = range bytes.Fields(b) {
-		result[i] = string(word)
-	}
-
-	return &result
-}
-
+// // Load retrieves an embedded dictionary and parses it.
+// func Load(name string) *Dictionary {
+// 	b, err := fs.ReadFile(embededDictionaries, path.Join("dictionaries", name))
+// 	if err != nil {
+// 		panic(err)
+// 	}
+//
+// 	var i int
+// 	var word []byte
+// 	var result Dictionary
+// 	for i, word = range bytes.Fields(b) {
+// 		result[i] = string(word)
+// 	}
+//
+// 	return &result
+// }
+//
 // Use sets up the default dictionary.
 func Use(dictionary *Dictionary) {
 	defaultDictionary = dictionary

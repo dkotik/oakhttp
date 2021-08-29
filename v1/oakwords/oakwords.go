@@ -7,9 +7,6 @@ import (
 
 // FromBytes translates bytes into words using the default dictionary.
 func FromBytes(b []byte) string {
-	if defaultDictionary == nil {
-		Use(Load(DictionaryEnglishNouns))
-	}
 	result := make([]string, len(b))
 	for i, u := range b {
 		result[i] = defaultDictionary[u]
@@ -19,18 +16,12 @@ func FromBytes(b []byte) string {
 
 // ToBytes translates words into bytes using the default dictionary.
 func ToBytes(words string) ([]byte, error) {
-	if defaultDictionary == nil {
-		Use(Load(DictionaryEnglishNouns))
-	}
 	return NewTranslator(defaultDictionary).Decode(strings.Fields(words))
 }
 
 // NewTranslator sets up a dictionary for translating bytes to words and back. If nil dictionary is provided, the EnglishNouns dictionary is used by default.
 func NewTranslator(dictionary *Dictionary) *Translator {
 	if dictionary == nil {
-		if defaultDictionary == nil {
-			Use(Load(DictionaryEnglishNouns))
-		}
 		dictionary = defaultDictionary
 	} else {
 		if err := dictionary.Validate(); err != nil {

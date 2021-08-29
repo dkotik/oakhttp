@@ -102,17 +102,3 @@ func (acs *AccessControlSystem) NewAuthorityWithDomainTransience(
 		return acs.Authorize(ctx, service, domain, resource, action)
 	}
 }
-
-// // Authority validates that a given session can perform a particular action.
-// type Authority interface {
-// 	// Authorize(ctx context.Context, sessionUUID, action string) bool
-// 	Authorize(ctx context.Context, action string) error
-// }
-//
-// // AuthorityFunc provides a single-method Authority.
-// type AuthorityFunc func(ctx context.Context, action string) error
-//
-// // Authorize satisfies the Authority interface.
-// func (a AuthorityFunc) Authorize(ctx context.Context, sessionUUID, action string) error {
-// 	return a(ctx, action)
-// }
