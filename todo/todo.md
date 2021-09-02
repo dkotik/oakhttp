@@ -1,6 +1,7 @@
 # Primary
 
 - [ ] remove alike oakwords
+- [ ] is `go get cuelang.org/go/pkg/uuid@v0.4.0` better UUID package?
 - [ ] consider simpler Permissions matching to map[string]string
   - allow domain:glob=\* id:any forum:regex=wowza
 

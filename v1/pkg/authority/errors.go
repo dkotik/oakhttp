@@ -1,4 +1,4 @@
-package authority
+package cueroles
 
 // ErrAccessDenied happens when access to a resource is denied for any reason.
 type ErrAccessDenied struct {

@@ -1,4 +1,4 @@
-package authority
+package cueroles
 
 import (
 	"errors"
@@ -6,6 +6,33 @@ import (
 	"strings"
 	"unicode"
 )
+
+/*
+ACTION JUST URL-ENCODED?
+
+
+? domain~glob=*.truthonly.com & domain~regex: glob:*.truthonly.com domain: glob:*.truthonly.com
+
+deny [
+	domain: glob:*.truthonly.com
+	domain: glob:*.truthonly.com
+	domain: glob:*.truthonly.com
+]
+
+Match: {
+	bydomain: domain=glob:*.truthonly.com
+}
+
+[Allow]: [
+	[bydomain, byuser, bydate],
+]
+
+Deny: [
+	[...]
+]
+
+
+*/
 
 /* CUE
 
@@ -24,7 +51,8 @@ import (
 */
 
 // [service=oakacs]
-// domain:glob=*.truthonly.com
+// domain: *.truthonly.com
+// domain *= truthonly test ~= regex test @= tag match
 func stringToComparator(s string) (Comparator, error) {
 	key, comparator, value := &strings.Builder{}, &strings.Builder{}, &strings.Builder{}
 	current := key
@@ -55,8 +83,8 @@ func stringToComparator(s string) (Comparator, error) {
 		return nil, errors.New("glob comparator is not yet implemented")
 	case "regex":
 		return nil, errors.New("regex comparator is not yet implemented")
-	case "":
-		return ComparatorExact(key.String(), value.String()), nil
+		// case "":
+		// 	return ComparatorExact(key.String(), value.String()), nil
 	}
 	return nil, fmt.Errorf("comparator %q is not registered", comparator.String())
 }

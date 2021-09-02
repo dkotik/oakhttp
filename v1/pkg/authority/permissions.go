@@ -1,4 +1,4 @@
-package authority
+package cueroles
 
 import "errors"
 
