@@ -1,12 +1,10 @@
 package cueroles
 
 import (
-	"fmt"
 	"testing"
 
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
-	"github.com/davecgh/go-spew/spew"
 )
 
 type (
@@ -61,11 +59,11 @@ func TestParseFromCue(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fmt.Printf("%+v\n", role)
+	// fmt.Printf("%+v\n", role)
 
 	var rplan RolePlan
 	if err := role.Decode(&rplan); err != nil {
 		t.Fatal(err)
 	}
-	spew.Dump(rplan)
+	// spew.Dump(rplan)
 }

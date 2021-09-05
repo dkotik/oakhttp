@@ -1,4 +1,4 @@
-package oakacs
+package role
 
 // Source: https://siongui.github.io/2017/04/11/go-wildcard-pattern-matching/ by Siong-Ui Te
 

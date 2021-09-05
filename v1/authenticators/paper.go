@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/dkotik/oakacs/v1"
 	"github.com/dkotik/oakacs/v1/oakwords"
@@ -31,7 +30,7 @@ func (p *Paper) Prepare() (string, error) {
 	return oakwords.FromBytes(b), nil
 }
 
-func (p *Paper) Generate(ctx context.Context, tokenOrPassword string) (*oakacs.Secret, error) {
+func (p *Paper) Generate(ctx context.Context, tokenOrPassword string) ([]byte, error) {
 	// fields := strings.Fields(tokenOrPassword)
 	b, err := oakwords.ToBytes(tokenOrPassword)
 	if len(b) != p.Length {
@@ -40,14 +39,10 @@ func (p *Paper) Generate(ctx context.Context, tokenOrPassword string) (*oakacs.S
 	if err != nil {
 		return nil, fmt.Errorf("could not parse code: %w", err)
 	}
-
-	return &oakacs.Secret{
-		Label: fmt.Sprintf("%s...", strings.Join(strings.Fields(tokenOrPassword)[:2], "-")),
-		Token: fmt.Sprintf("%x", b),
-	}, nil
+	return b, nil
 }
 
-func (p *Paper) Compare(ctx context.Context, tokenOrPassword string, secret *oakacs.Secret) error {
+func (p *Paper) Compare(ctx context.Context, tokenOrPassword string, secret oakacs.Secret) error {
 	// fields := strings.Fields(tokenOrPassword)
 	b, err := oakwords.ToBytes(tokenOrPassword)
 	if len(b) != p.Length {
@@ -56,9 +51,5 @@ func (p *Paper) Compare(ctx context.Context, tokenOrPassword string, secret *oak
 	if err != nil {
 		return fmt.Errorf("could not parse code: %w", err)
 	}
-
-	if secret.Token != fmt.Sprintf("%x", b) {
-		return errors.New("tokens do not match")
-	}
-	return nil
+	return secret(b)
 }

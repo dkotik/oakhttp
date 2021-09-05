@@ -16,6 +16,6 @@ const (
 
 // Manager provides the facility to persist all the data necessary for the Oak Access Control System.
 type Manager struct {
-	acs        *oakacs.AccessControlSystem
-	persistent *oakacs.PersistentRepository
+	acs *oakacs.AccessControlSystem
+	// persistent *oakacs.PersistentRepository
 }

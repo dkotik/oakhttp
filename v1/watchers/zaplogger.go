@@ -16,18 +16,18 @@ func ZapLogger(logger *zap.Logger) Watcher {
 			}
 		}
 		events := make(chan (oakacs.Event), 64) // a small buffer
-		go func() {
-			defer logger.Sync()
-			for event := range events {
-				switch event.Type {
-				default:
-					logger.Info(event.Type.String(),
-						zap.Time("ts", event.When),
-						zap.String("session", event.Session.String()),
-					)
-				}
-			}
-		}()
+		// go func() {
+		// 	defer logger.Sync()
+		// 	for event := range events {
+		// 		switch event.Type {
+		// 		default:
+		// 			logger.Info(event.Type.String(),
+		// 				zap.Time("ts", event.When),
+		// 				zap.String("session", event.Session.String()),
+		// 			)
+		// 		}
+		// 	}
+		// }()
 		return events, nil
 	})
 }
@@ -35,26 +35,26 @@ func ZapLogger(logger *zap.Logger) Watcher {
 // ZapSugarLogger converts ACS events into log records with nice terminal colors.
 func ZapSugarLogger() Watcher {
 	return Watcher(func() (chan (oakacs.Event), error) {
-		var err error
-		dev, err := zap.NewDevelopment()
-		if err != nil {
-			return nil, err
-		}
-		logger := dev.Sugar()
+		// var err error
+		// dev, err := zap.NewDevelopment()
+		// if err != nil {
+		// 	return nil, err
+		// }
+		// logger := dev.Sugar()
 
 		events := make(chan (oakacs.Event), 64) // a small buffer
-		go func() {
-			defer logger.Sync()
-			for event := range events {
-				switch event.Type {
-				default:
-					logger.Info(event.Type.String(),
-						zap.Time("ts", event.When),
-						zap.String("session", event.Session.String()),
-					)
-				}
-			}
-		}()
+		// go func() {
+		// 	defer logger.Sync()
+		// 	for event := range events {
+		// 		switch event.Type {
+		// 		default:
+		// 			logger.Info(event.Type.String(),
+		// 				zap.Time("ts", event.When),
+		// 				zap.String("session", event.Session.String()),
+		// 			)
+		// 		}
+		// 	}
+		// }()
 		return events, nil
 	})
 }

@@ -17,15 +17,15 @@ type Authenticator interface {
 func (acs *AccessControlSystem) Authenticate(ctx context.Context, user, tokenOrPassword, authenticator string) (s *Session, err error) {
 	defer func() {
 		event := Event{
-			ctx:  ctx,
-			Type: EventTypeAuthenticationSuccess,
+			Context: ctx,
+			Type:    EventTypeAuthenticationSuccess,
 		}
 		if err != nil {
 			err = fmt.Errorf("authentication error: %w", err)
 			event.Error = err
 			event.Type = EventTypeAuthenticationFailure
 		}
-		acs.Broadcast(event)
+		// acs.Broadcast(event)
 	}()
 	// throttle attempts by user
 
