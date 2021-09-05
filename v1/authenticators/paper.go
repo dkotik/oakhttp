@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dkotik/oakacs/v1"
 	"github.com/dkotik/oakacs/v1/oakwords"
 )
 
@@ -42,14 +41,14 @@ func (p *Paper) Generate(ctx context.Context, tokenOrPassword string) ([]byte, e
 	return b, nil
 }
 
-func (p *Paper) Compare(ctx context.Context, tokenOrPassword string, secret oakacs.Secret) error {
-	// fields := strings.Fields(tokenOrPassword)
-	b, err := oakwords.ToBytes(tokenOrPassword)
-	if len(b) != p.Length {
-		return errors.New("provided code is not the right size")
-	}
-	if err != nil {
-		return fmt.Errorf("could not parse code: %w", err)
-	}
-	return secret(b)
-}
+// func (p *Paper) Compare(ctx context.Context, tokenOrPassword string, secret oakacs.Secret) error {
+// 	// fields := strings.Fields(tokenOrPassword)
+// 	b, err := oakwords.ToBytes(tokenOrPassword)
+// 	if len(b) != p.Length {
+// 		return errors.New("provided code is not the right size")
+// 	}
+// 	if err != nil {
+// 		return fmt.Errorf("could not parse code: %w", err)
+// 	}
+// 	return secret(b)
+// }

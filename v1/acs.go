@@ -3,17 +3,18 @@ package oakacs
 import (
 	"context"
 	"fmt"
+	"time"
 )
 
 type (
-	Secret   func(token []byte) error
 	Identity interface {
-		ListSecrets(authenticator string) ([]Secret, error)
-		ListRoles() ([]byte, error)
-		ListGroups() ([]byte, error)
+		TokensFor(authenticator string) [][]byte
+		AvailableRoles() [][]byte
+		// Duration?
 	}
 	IdentityRepository interface {
-		Retrieve(context.Context, []byte) (Identity, error)
+		Create(context.Context) (Identity, []byte, error)
+		Retrieve(context.Context, []byte) (Identity, error) // identity can be banned
 	}
 
 	Action interface {
@@ -22,7 +23,8 @@ type (
 	}
 	Role           func(Action) error
 	RoleRepository interface {
-		Retrieve(context.Context, []byte) (Role, error)
+		Retrieve(context.Context, []byte) (Role, error) // role can be banned
+		GetDuration(context.Context, []byte) (time.Duration, error)
 	}
 
 	sessionContextKeyType string
@@ -33,7 +35,7 @@ type (
 		UUID     []byte
 		Role     []byte
 		Identity []byte
-		// Deadline is already set
+		Deadline time.Time
 		// Identity       xid.ID
 		// Role           xid.ID
 		// Created        time.Time
@@ -42,6 +44,7 @@ type (
 	}
 	SessionRepository interface {
 		Create(context.Context, *Session) error
+		// Update(context.Context, []byte, func(*Session) error) error
 		Retrieve(context.Context, []byte) (*Session, error)
 		Delete(context.Context, []byte) error
 	}
@@ -75,6 +78,9 @@ func NewAccessControlSystem(withOptions ...Option) (*AccessControlSystem, error)
 // AccessControlSystem manages sessions.
 type AccessControlSystem struct {
 	sessionContextKey sessionContextKeyType
+	sessions          SessionRepository
+	identities        IdentityRepository
+	roles             RoleRepository
 	// TokenValidator    *TokenValidator
 
 	subscribers    []chan<- (Event)

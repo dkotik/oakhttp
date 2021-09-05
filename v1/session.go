@@ -30,16 +30,13 @@ func (acs *AccessControlSystem) SessionBind(
 	return context.WithValue(ctx, acs.sessionContextKey, nil), nil
 }
 
-// SessionContinue retrieves the session state from context.
-func (acs *AccessControlSystem) SessionContinue(ctx context.Context) (Session, error) {
+// Continue retrieves the session state from context.
+func (acs *AccessControlSystem) Continue(ctx context.Context) (*Session, error) {
 	switch s := ctx.Value(acs.sessionContextKey).(type) {
 	case Session:
-		return s, nil
+		return &s, nil
 	default:
 		// TODO: standardize the error
-		return Session{}, errors.New("execution context is not authenticated")
+		return nil, errors.New("execution context is not authenticated")
 	}
 }
-
-func (acs *AccessControlSystem) PushSession() {}
-func (acs *AccessControlSystem) PullSession() {}
