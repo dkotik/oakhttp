@@ -9,7 +9,7 @@ import (
 
 type (
 	AuthenticationRequest struct {
-		Authenticator string
+		Authenticator Authenticator
 		Identity      []byte
 		Secret        []byte
 		Role          []byte
@@ -19,7 +19,7 @@ type (
 
 	Authenticator interface {
 		NewSecretFrom([]byte) ([]byte, error)
-		TrySecret(secret []byte, tokens [][]byte) error
+		TrySecret([]byte, Identity) error
 		// TrySecret([]byte, Identity) error
 	}
 )
@@ -47,8 +47,7 @@ func (acs *AccessControlSystem) Authenticate(ctx context.Context, r *Authenticat
 		acs.Broadcast(ctx, EventTypeAuthentication, err) // wrap error
 	}()
 	// TODO: throttle attempts by user
-	auth, ok := acs.authenticators[r.Authenticator]
-	if !ok {
+	if r.Authenticator == nil {
 		return nil, errors.New("chosen authenticator is not active") // TODO: standardize
 	}
 
@@ -59,7 +58,7 @@ func (acs *AccessControlSystem) Authenticate(ctx context.Context, r *Authenticat
 	}
 
 	// 2. Authenticate: confirm identity using a secret
-	if err = auth.TrySecret(r.Secret, identity.TokensFor(r.Authenticator)); err != nil {
+	if err = r.Authenticator.TrySecret(r.Secret, identity); err != nil {
 		return nil, err
 	}
 

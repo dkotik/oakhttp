@@ -10,10 +10,9 @@ type (
 	Identity interface {
 		TokensFor(authenticator string) [][]byte
 		AvailableRoles() [][]byte
-		// Duration?
 	}
 	IdentityRepository interface {
-		Create(context.Context) (Identity, []byte, error)
+		Create(context.Context, AuthenticationRequest) (Identity, []byte, error)
 		Retrieve(context.Context, []byte) (Identity, error) // identity can be banned
 	}
 
@@ -59,9 +58,7 @@ func NewAccessControlSystem(withOptions ...Option) (*AccessControlSystem, error)
 		}
 	}()
 
-	acs := &AccessControlSystem{
-		authenticators: make(map[string]Authenticator),
-	}
+	acs := &AccessControlSystem{}
 	err = WithOptions(withOptions...)(acs)
 	if err != nil {
 		return nil, err
@@ -83,8 +80,7 @@ type AccessControlSystem struct {
 	roles             RoleRepository
 	// TokenValidator    *TokenValidator
 
-	subscribers    []chan<- (Event)
-	authenticators map[string]Authenticator
+	subscribers []chan<- (Event)
 	// ephemeral      EphemeralRepository
 	// persistent     PermissionsRepository
 }

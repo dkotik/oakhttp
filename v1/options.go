@@ -1,8 +1,6 @@
 package oakacs
 
 import (
-	"fmt"
-
 	"go.uber.org/zap"
 )
 
@@ -17,17 +15,6 @@ func WithOptions(options ...Option) Option {
 				return err
 			}
 		}
-		return nil
-	}
-}
-
-// WithAuthenticator attaches possible authenticators to the ACS.
-func WithAuthenticator(name string, authenticator Authenticator) Option {
-	return func(acs *AccessControlSystem) (err error) {
-		if _, ok := acs.authenticators[name]; ok {
-			return fmt.Errorf("authenticator %q is already set", name)
-		}
-		acs.authenticators[name] = authenticator
 		return nil
 	}
 }

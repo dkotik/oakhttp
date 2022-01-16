@@ -3,13 +3,23 @@ package oakwords
 import (
 	"errors"
 	"fmt"
+	"io"
 	"strings"
+	"text/scanner"
 )
 
 //go:generate go run dictionaries_generate.go --source dictionaries/english-nouns.txt --destination dict_english_nouns.gen.go --variable EnglishFourLetterNouns
 
 // Dictionary holds 256 words, each corresponding to a byte value.
 type Dictionary [256]string
+
+func (d *Dictionary) Reverse() map[string]byte {
+	m := make(map[string]byte)
+	for i, w := range d {
+		m[w] = byte(i)
+	}
+	return m
+}
 
 // Validate iterates through every value to check for uniqueness and extra white space characters.
 func (d *Dictionary) Validate() error {
@@ -46,23 +56,32 @@ var (
 	defaultDictionary = &EnglishFourLetterNouns
 )
 
-// // Load retrieves an embedded dictionary and parses it.
-// func Load(name string) *Dictionary {
-// 	b, err := fs.ReadFile(embededDictionaries, path.Join("dictionaries", name))
-// 	if err != nil {
-// 		panic(err)
-// 	}
-//
-// 	var i int
-// 	var word []byte
-// 	var result Dictionary
-// 	for i, word = range bytes.Fields(b) {
-// 		result[i] = string(word)
-// 	}
-//
-// 	return &result
-// }
-//
+// Load parses the first 256 words of a dictionary. Commented lines are ignored.
+func Load(r io.Reader) (d *Dictionary, err error) {
+	s := &scanner.Scanner{}
+	s.Init(r)
+	s.Error = func(s *scanner.Scanner, msg string) {
+		err = errors.New(msg)
+	}
+	unique := make(map[string]struct{})
+
+	cursor := 0
+	for tok := s.Scan(); tok != scanner.EOF; tok = s.Scan() {
+		if err != nil || cursor > 255 {
+			break
+		}
+		word := s.TokenText()
+		if _, ok := unique[word]; ok {
+			return d, fmt.Errorf("word %q is not unique in chosen dictionary", word)
+		}
+		unique[word] = struct{}{}
+
+		d[cursor] = word
+		cursor++
+	}
+	return
+}
+
 // Use sets up the default dictionary.
 func Use(dictionary *Dictionary) {
 	defaultDictionary = dictionary

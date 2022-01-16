@@ -1,16 +1,45 @@
 package oakacs
 
 import (
+	"bytes"
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 
 	"github.com/rs/xid"
 )
 
-// SessionBind retrieves the Session from ephemeral storage and binds it to context.
-func (acs *AccessControlSystem) SessionBind(
-	ctx context.Context, id xid.ID, differentiator string,
-) (context.Context, error) {
+type SessionID [24]byte
+
+// Bind retrieves the Session and binds it to context. If the session does not exist, it is created.
+func (acs *AccessControlSystem) Bind(ctx context.Context, token string) (context.Context, error) {
+	b, err := base64.StdEncoding.DecodeString(token)
+	if len(b) > 12 {
+		session, err := acs.sessions.Retrieve(ctx, b[:12])
+		if err == nil {
+			if bytes.Compare(session.UUID[12:], b[12:]) == 0 {
+				return context.WithValue(ctx, acs.sessionContextKey, &session), nil
+			}
+			return nil, errors.New("session differentiator did not match")
+		}
+		return nil, err
+	}
+
+	var (
+		sid  SessionID
+		nxid = xid.New()
+	)
+	n := copy(sid[:], nxid[:])
+	more, err := rand.Read(sid[len(sid)-n:])
+	if err != nil {
+		return nil, err
+	}
+	if more+n < len(sid) {
+		return nil, errors.New("not enough random bytes")
+	}
+	// b =
+
 	// TODO: could I request by prefix, then check if the rest of the id matches?
 	// session, err := acs.ephemeral.Sessions.Retrieve(ctx, id)
 	// if err != nil {

@@ -257,22 +257,17 @@ zone
 
 // https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-10000-english-no-swears.txt
 cast
-pick
-feed
 rent
 host
-poor
 lord
 wife
 flat
 flow
 path
 load
-gone
 fort
 gain
 lack
-zoom
 clip
 wire
 zero
@@ -282,7 +277,6 @@ font
 beta
 fail
 jazz
-dual
 rise
 plug
 poll
@@ -312,8 +306,6 @@ plot
 pump
 scan
 bulk
-cute
-para
 meat
 gate
 rail

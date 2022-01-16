@@ -4,12 +4,12 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"math/rand"
 	"os"
+	"text/scanner"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -21,12 +21,33 @@ var (
 	variable    = pflag.String("variable", "", "variable name")
 )
 
-func createDictionary(destination, source, variable string) error {
-	b, err := os.ReadFile(source)
+func createDictionary(destination, source, variable string) (err error) {
+	words := make([]string, 256)
+
+	f, err := os.Open(source)
 	if err != nil {
 		return err
 	}
-	words := bytes.Fields(b)[:256]
+	defer f.Close()
+	s := &scanner.Scanner{}
+	s.Init(f)
+	s.Error = func(s *scanner.Scanner, msg string) {
+		err = errors.New(msg)
+	}
+
+	for i := 0; i < 256; i++ {
+		s.Scan()
+		if err != nil {
+			return err
+		}
+		words[i] = s.TokenText()
+	}
+
+	// b, err := os.ReadFile(source)
+	// if err != nil {
+	// 	return err
+	// }
+	// words := bytes.Fields(b)[:256]
 	rand.Shuffle(256, func(i int, j int) {
 		words[i], words[j] = words[j], words[i]
 	})
