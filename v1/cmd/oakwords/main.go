@@ -12,7 +12,8 @@ import (
 )
 
 var (
-	// stdin = pflag.Bool("stdin", false, "use data from OS standard in")
+	stdin   = pflag.Bool("stdin", false, "use data from OS standard in")
+	intmod  = pflag.BoolP("integer", "i", false, "treat text as unsigned integer")
 	reverse = pflag.BoolP("reverse", "r", false, "recover encoded data")
 	help    = pflag.BoolP("help", "h", false, "display help message")
 )
