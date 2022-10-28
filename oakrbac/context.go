@@ -6,88 +6,120 @@ import (
 	"net/http"
 )
 
-type contextKey int
+type ContextKey int
 
 var (
+	// ErrContextRoleNotFound indicates the absence of [Role] association with [context.Context]. Did you forget to inject the role using [rbac.ContextWithRole] or [rbac.ContextWithNegotiatedRole]?
 	ErrContextRoleNotFound = errors.New("context does not include an OakACS role value")
 )
 
 const (
-	contextKeyForRole contextKey = iota
+	ContextKeyRole ContextKey = iota
+	ContextKeyRoleName
+	contextKeySelf
 )
 
-// ContextWithRole injects the chosen role into [context.Context].
-func ContextWithRole(parent context.Context, role Role) context.Context {
-	return context.WithValue(parent, contextKeyForRole, role)
+type roleContext struct {
+	context.Context
+	role     Role
+	roleName string
 }
 
-// ContextMount recovers an RBAC role from [context.Context].
-func ContextMount(ctx context.Context) (Role, error) {
-	role, ok := ctx.Value(contextKeyForRole).(Role)
+func (c *roleContext) Value(key any) (value any) {
+	k, ok := key.(ContextKey)
 	if ok {
-		return role, nil
-	}
-	return nil, &AccessDeniedError{Cause: ErrContextRoleNotFound}
-}
-
-// ContextAuthorize recovers the role associated with a given context and checks the intent against the role. It is a helper method for [ContextMount].
-func ContextAuthorize(ctx context.Context, i *Intent) error {
-	role, err := ContextMount(ctx)
-	if err != nil {
-		return err
-	}
-	return role.Authorize(ctx, i)
-}
-
-// ContextAuthorizeEach recovers the role associated with a given context and checks each provided intent against the role. It is a helper method for [ContextMount].
-func ContextAuthorizeEach(ctx context.Context, i ...*Intent) (err error) {
-	role, err := ContextMount(ctx)
-	if err != nil {
-		return err
-	}
-	for _, i := range i {
-		if err = role.Authorize(ctx, i); err != nil {
-			return err
+		switch k {
+		case ContextKeyRole:
+			return c.role
+		case ContextKeyRoleName:
+			return c.roleName
+		case contextKeySelf:
+			return c
 		}
 	}
-	return nil
+	return c.Context.Value(key)
 }
 
-// ContextWithRole is a helper method for [ContextWithRole] which first locates the RBAC role by name.
-func (r *RBAC) ContextWithRole(parent context.Context, role string) (context.Context, error) {
-	found, err := r.GetRole(role)
-	if err != nil {
-		return nil, err
+// ContextWithRole injects the chosen role into [context.Context]. Panics if the role was not registered.
+func (r RBAC) ContextWithRole(
+	parent context.Context,
+	role string,
+) context.Context {
+	return &roleContext{
+		Context:  parent,
+		role:     r[role],
+		roleName: role,
 	}
-	return ContextWithRole(parent, found), nil
+}
+
+// ContextWithNegotiatedRole injects the chosen role into [context.Context]. If the chose role was not registered, the defaultRole is used. Panics if the defaultRole was not registered.
+func (r RBAC) ContextWithNegotiatedRole(
+	parent context.Context,
+	role string,
+	defaultRole string,
+) context.Context {
+	found, ok := r[role]
+	if ok {
+		return &roleContext{
+			Context:  parent,
+			role:     found,
+			roleName: role,
+		}
+	}
+	return &roleContext{
+		Context:  parent,
+		role:     r[defaultRole],
+		roleName: defaultRole,
+	}
+}
+
+func recoverContext(ctx context.Context) (*roleContext, error) {
+	c, ok := ctx.Value(contextKeySelf).(*roleContext)
+	if ok {
+		return c, nil
+	}
+	// fmt.Printf("Context: %+v", c)
+	return nil, ErrContextRoleNotFound
+}
+
+// ContextAuthorize recovers the role associated with a given context and checks the intent against the role.
+func ContextAuthorize(ctx context.Context, i *Intent) (role string, p Policy, err error) {
+	c, err := recoverContext(ctx)
+	if err != nil {
+		return "", nil, nil
+	}
+	p, err = c.role(ctx, i)
+	return c.roleName, p, err
+}
+
+// ContextAuthorizeEach recovers the role associated with a given context and checks each provided intent against the role.
+func ContextAuthorizeEach(ctx context.Context, i ...*Intent) (role string, p Policy, err error) {
+	c, err := recoverContext(ctx)
+	if err != nil {
+		return "", nil, nil
+	}
+	for _, i := range i {
+		if p, err = c.role(ctx, i); err != nil {
+			return c.roleName, p, err
+		}
+	}
+	return c.roleName, nil, err
 }
 
 // ContextMiddleWare is an example of an HTTP middleware that injects a role into a [context.Context], which can later be recovered using [ContextMount] or [ContextAuthorize] or [ContextAuthorizeEach]. The role here is taken from the HTTP header, but in production it should be taken from a session or token, like JWT, value.
-func (r *RBAC) ContextMiddleWare(fallback string, next http.Handler) http.Handler {
-	injector := r.ContextInjectorWithFallback(fallback)
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func (r RBAC) ContextMiddleWare(fallback string, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 
 		if true {
 			panic("ContextMiddleWare middleware is insecure. It is provided as an example.")
 		}
 
-		next.ServeHTTP(w, r.WithContext(
-			injector(r.Context(), r.Header.Get("role")),
+		next.ServeHTTP(w, request.WithContext(
+			r.ContextWithNegotiatedRole(
+				request.Context(),
+				request.Header.Get("role"),
+				fallback,
+			),
 		))
 	})
-}
-
-// ContextWithRole is a builder for [ContextWithRole] which first locates the RBAC role by name. If the desired role cannot be located, the fallback role is used instead.
-func (r *RBAC) ContextInjectorWithFallback(fallbackRole string) func(context.Context, string) context.Context {
-	fallback, err := r.GetRole(fallbackRole)
-	if err != nil {
-		panic(err)
-	}
-	return func(parent context.Context, role string) context.Context {
-		found, err := r.GetRole(role)
-		if err != nil {
-			return ContextWithRole(parent, fallback)
-		}
-		return ContextWithRole(parent, found)
-	}
 }

@@ -9,7 +9,11 @@
 
 ## Packages
 
-- [oakrbac](pkg.go.dev/github.com/dkotik/oakacs/oakrbac): role-based access control
+- [oakrbac](https://pkg.go.dev/github.com/dkotik/oakacs/oakrbac): role-based access control
+
+    [![GoDoc](https://godoc.org/github.com/dkotik/oakacs/oakrbac?status.png)](https://pkg.go.dev/github.com/dkotik/oakacs/oakrbac?tab=doc)
+    [![Go report card](https://goreportcard.com/badge/github.com/dkotik/oakacs/oakrbac)](https://goreportcard.com/report/github.com/dkotik/oakacs/oakrbac)
+    [![Test coverage](http://gocover.io/_badge/github.com/dkotik/oakacs/oakrbac)](https://gocover.io/github.com/dkotik/oakacs/oakrbac)
 
 ## Functions
 

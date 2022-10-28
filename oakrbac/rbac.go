@@ -1,6 +1,12 @@
+/*
+
+Package oakrbac description...
+
+*/
 package oakrbac
 
 import (
+	"context"
 	"errors"
 	"fmt"
 )
@@ -24,7 +30,12 @@ func Must(r RBAC, err error) RBAC {
 // New builds an [RBAC] using provided [Option] set.
 func New(options ...Option) (rbac RBAC, err error) {
 	rbac = make(RBAC)
-	for _, option := range options {
+	for _, option := range append(options, func(r RBAC) error {
+		if len(r) == 0 {
+			return errors.New("provide at least one role")
+		}
+		return nil
+	}) {
 		if err = option(rbac); err != nil {
 			return nil, fmt.Errorf("cannot create OakRBAC: %w", err)
 		}
@@ -32,67 +43,24 @@ func New(options ...Option) (rbac RBAC, err error) {
 	return rbac, nil
 }
 
-// GetRole returns an authorization role by name. If the role is not registered, default role is returned instead.
-func (r RBAC) GetRole(name string) (Role, error) {
-	role, ok := r[name]
-	if ok {
-		return role, nil
+func (r RBAC) Authorize(ctx context.Context, role string, i *Intent) (Policy, error) {
+	found, ok := r[role]
+	if !ok {
+		return nil, ErrAuthorizationDenied
 	}
-	return nil, &AccessDeniedError{
-		Cause: &ErrRoleNotFound{Name: name},
-	}
+	return found(ctx, i)
 }
 
-// WithRole adds a role to [RBAC]. This option is useful if you have implemented the [Role] interface yourself. Otherwise, use [WithRoles] and [WithSilentRoles] instead.
-func WithRole(name string, r Role) Option {
-	return func(rb RBAC) (err error) {
-		if name == "" {
-			return errors.New("cannot use an empty role name")
-		}
-		if _, ok := rb[name]; ok {
-			return fmt.Errorf("role %q has already been defined", name)
-		}
-		rb[name] = r
-		return nil
+func (r RBAC) AuthorizeEach(ctx context.Context, role string, i ...*Intent) (p Policy, err error) {
+	found, ok := r[role]
+	if !ok {
+		return nil, ErrAuthorizationDenied
 	}
-}
-
-// Uninitialized [Logger] will be replaced with a default system logger relying on slow [Event] reflection. Do not use uninitialized loggers in production.
-func WithRoles(definition map[string][]Policy, logger Logger) Option {
-	return func(r RBAC) (err error) {
-		if logger == nil {
-			return errors.New("cannot use uninitialized logger")
+	for _, intent := range i {
+		p, err = found(ctx, intent)
+		if err != nil {
+			return p, err
 		}
-		for name, policies := range definition {
-			if err = ValidatePolicySet(policies); err != nil {
-				return fmt.Errorf("invalid policy set for role %q: %w", name, err)
-			}
-			if err = WithRole(name, &observedRole{
-				name:     name,
-				policies: policies,
-				logger:   logger,
-			})(r); err != nil {
-				return fmt.Errorf("failed to add role %q: %w", name, err)
-			}
-		}
-		return nil
 	}
-}
-
-// WithSilentRoles creates a role set equivalent to [WithRoles] except for trading observability for faster execution. Use with caution for roles exposed to heavy traffic.
-func WithSilentRoles(definition map[string][]Policy) Option {
-	return func(r RBAC) (err error) {
-		for name, policies := range definition {
-			if err = ValidatePolicySet(policies); err != nil {
-				return fmt.Errorf("invalid policy set for role %q: %w", name, err)
-			}
-			if err = WithRole(name, &silentRole{
-				name:     name,
-				policies: policies,
-			})(r); err != nil {
-				return fmt.Errorf("failed to add role %q: %w", name, err)
-			}
-		}
-		return nil
-	}
+	return nil, nil
 }

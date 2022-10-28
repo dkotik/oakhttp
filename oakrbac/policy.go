@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
+	"runtime"
+	"strings"
 )
 
 type (
@@ -22,30 +25,55 @@ var (
 	//revive:enable:error-naming
 
 	// ErrNoPolicyMatched blocks authorization because every role policy returned a `nil` value.
-	ErrNoPolicyMatched = errors.New("no authorization policy matched")
+	// ErrNoPolicyMatched = errors.New("no authorization policy matched")
 	// ErrContextRoleNotFound indicates that a context does not include a role that can be retrieved using the package context key. If you see this error, you probably forgot to inject the role using either [ContextWithRole] or [rbac.ContextInjectorWithFallback] early in the execution path. This is typically done using a middleware function like [rbac.ContextMiddleWare].
 	// ErrNoPredicates     = errors.New("there are no predicates attached to the Intent")
 )
 
-// ErrRoleNotFound is raised when [rbac.GetRole] cannot locate the desired role by name.
-type ErrRoleNotFound struct {
-	Name string
+// Name returns the name of the [Policy] function by using reflection.
+func (p Policy) Name() string {
+	if p == nil {
+		return "<no policy matched>"
+	}
+	return runtime.FuncForPC(reflect.ValueOf(p).Pointer()).Name()
 }
 
-func (e *ErrRoleNotFound) Error() string {
-	return fmt.Sprintf("role %q is not registered", e.Name)
+// File returns the path to the file containing [Policy] function definition by using reflection.
+func (p Policy) File() string {
+	if p == nil {
+		return "<nil>"
+	}
+	definition := runtime.FuncForPC(reflect.ValueOf(p).Pointer())
+	file, _ := definition.FileLine(definition.Entry())
+	return file
 }
 
-func ValidatePolicySet(ps []Policy) error {
-	if len(ps) == 0 {
-		return errors.New("policy set must include at least one policy")
+// Line returns the line number of the [Policy] function in its file by using reflection.
+func (p Policy) Line() int {
+	if p == nil {
+		return 0
 	}
-	for i, p := range ps {
-		if p == nil {
-			return fmt.Errorf("policy set contains an uninitialized policy at index %d", i)
-		}
+	definition := runtime.FuncForPC(reflect.ValueOf(p).Pointer())
+	_, line := definition.FileLine(definition.Entry())
+	return line
+}
+
+func (p Policy) String() string {
+	if p == nil {
+		return "<no policy matched>"
 	}
-	return nil
+	definition := runtime.FuncForPC(reflect.ValueOf(p).Pointer())
+	name := definition.Name()
+	file, line := definition.FileLine(definition.Entry())
+
+	output := strings.Builder{}
+	output.WriteString("policy `")
+	output.WriteString(name)
+	output.WriteString("` defined in ")
+	output.WriteString(file)
+	output.WriteString(", line ")
+	output.WriteString(fmt.Sprintf("%d", line))
+	return output.String()
 }
 
 // PolicyEither combines a [Policy] list into one that return on first [Allow] or error.
