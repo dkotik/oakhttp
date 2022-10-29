@@ -16,20 +16,6 @@ type (
 	Policy func(context.Context, *Intent) error
 )
 
-var (
-	//revive:disable:error-naming
-	// Allow is a sentinel error that explicitly indicates that a [Policy] matched [Intent] and grants access.
-	Allow = errors.New("sentinel error: policy granted access")
-	// Deny is a sentinel error that explicitly indicates that a [Policy] matched [Intent] and denies access.
-	Deny = errors.New("sentinel error: policy denied access")
-	//revive:enable:error-naming
-
-	// ErrNoPolicyMatched blocks authorization because every role policy returned a `nil` value.
-	// ErrNoPolicyMatched = errors.New("no authorization policy matched")
-	// ErrContextRoleNotFound indicates that a context does not include a role that can be retrieved using the package context key. If you see this error, you probably forgot to inject the role using either [ContextWithRole] or [rbac.ContextInjectorWithFallback] early in the execution path. This is typically done using a middleware function like [rbac.ContextMiddleWare].
-	// ErrNoPredicates     = errors.New("there are no predicates attached to the Intent")
-)
-
 // Name returns the name of the [Policy] function by using reflection.
 func (p Policy) Name() string {
 	if p == nil {

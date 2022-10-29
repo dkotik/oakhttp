@@ -6,32 +6,10 @@ import (
 	"fmt"
 )
 
-var ErrAuthorizationDenied = errors.New("authorization denied")
-
 // A Role is an [Intent] authorization provider. It returns true when authorization is granted. The returned policy points to [Policy] that granted or denied authorization or was interrupted by an error. The pointer can be used for observability using either [Policy.Name] and [Policy.NameFileLine] methods, which can handle `nil` values.
 //
 // TODO: retype the comment above
 type Role func(context.Context, *Intent) (Policy, error)
-
-func newRole(ps ...Policy) Role {
-	return func(ctx context.Context, i *Intent) (
-		policy Policy,
-		err error,
-	) {
-		for _, policy = range ps {
-			if err = policy(ctx, i); err != nil {
-				if errors.Is(err, Allow) {
-					return policy, nil // policy matched
-				}
-				if errors.Is(err, Deny) {
-					return policy, ErrAuthorizationDenied // policy blocked
-				}
-				return policy, err // unexpected error
-			}
-		}
-		return nil, ErrAuthorizationDenied
-	}
-}
 
 func WithNewRole(name string, ps ...Policy) Option {
 	return func(r RBAC) (err error) {
@@ -43,7 +21,17 @@ func WithNewRole(name string, ps ...Policy) Option {
 				return fmt.Errorf("policy set for role %q contains an uninitialized policy at index %d", name, i)
 			}
 		}
-		return WithRole(name, newRole(ps...))(r)
+		return WithRole(name, func(ctx context.Context, i *Intent) (
+			policy Policy,
+			err error,
+		) {
+			for _, policy = range ps {
+				if err = policy(ctx, i); err != nil {
+					return policy, err
+				}
+			}
+			return nil, Deny
+		})(r)
 	}
 }
 

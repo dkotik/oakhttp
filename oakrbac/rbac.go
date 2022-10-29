@@ -12,11 +12,11 @@ import (
 )
 
 type (
-	// Option customizes the [RBAC] constructor [New].
-	Option func(RBAC) error
-
 	// RBAC is a simple Role Based Access Control system.
 	RBAC map[string]Role
+
+	// Option customizes the [RBAC] constructor [New].
+	Option func(RBAC) error
 )
 
 // Must panics if an error is associated with [RBAC] constructor. Use together with [New].
@@ -43,24 +43,49 @@ func New(options ...Option) (rbac RBAC, err error) {
 	return rbac, nil
 }
 
-func (r RBAC) Authorize(ctx context.Context, role string, i *Intent) (Policy, error) {
+func (r RBAC) Authorize(ctx context.Context, role string, i *Intent) error {
 	found, ok := r[role]
 	if !ok {
-		return nil, ErrAuthorizationDenied
-	}
-	return found(ctx, i)
-}
-
-func (r RBAC) AuthorizeEach(ctx context.Context, role string, i ...*Intent) (p Policy, err error) {
-	found, ok := r[role]
-	if !ok {
-		return nil, ErrAuthorizationDenied
-	}
-	for _, intent := range i {
-		p, err = found(ctx, intent)
-		if err != nil {
-			return p, err
+		return &AccessDeniedError{
+			Role:   "",
+			Policy: nil,
 		}
 	}
-	return nil, nil
+	p, err := found(ctx, i)
+	if errors.Is(err, Allow) {
+		return nil
+	}
+	if errors.Is(err, Deny) {
+		return &AccessDeniedError{
+			Role:   role,
+			Policy: p,
+		}
+	}
+	return &AccessDeniedError{Role: role, Policy: p, Cause: err}
+}
+
+func (r RBAC) AuthorizeEach(ctx context.Context, role string, i ...*Intent) (err error) {
+	found, ok := r[role]
+	if !ok {
+		return &AccessDeniedError{
+			Role:   "",
+			Policy: nil,
+		}
+	}
+
+	var p Policy
+	for _, intent := range i {
+		p, err = found(ctx, intent)
+		if errors.Is(err, Allow) {
+			continue
+		}
+		if errors.Is(err, Deny) {
+			return &AccessDeniedError{
+				Role:   role,
+				Policy: p,
+			}
+		}
+		return &AccessDeniedError{Role: role, Policy: p, Cause: err}
+	}
+	return nil
 }

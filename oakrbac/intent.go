@@ -2,7 +2,6 @@ package oakrbac
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 )
@@ -18,21 +17,6 @@ type (
 	// Include a predicate list in your Intent constructors.
 	Predicate func(ctx context.Context, desiredValues ...string) (bool, error)
 )
-
-var (
-	// ErrMissingPredicate is raised when a [Policy] cannot locate the desired predicate in an [Intent].
-	ErrPredicateNotFound = errors.New("predicate does not exist")
-)
-
-// PredicateError is raised when a [Policy] cannot execute an [Intent] [Predicate].
-type PredicateError struct {
-	Name  string
-	Cause error
-}
-
-func (e *PredicateError) Error() string {
-	return fmt.Sprintf("cannot execute predicate %q: %s", e.Name, e.Cause)
-}
 
 const (
 	// ResourcePathSeparator divides the sections of resource paths and masks. The value is used for parsing and printing their plain string reprsentations.

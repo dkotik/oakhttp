@@ -8,11 +8,6 @@ import (
 
 type ContextKey int
 
-var (
-	// ErrContextRoleNotFound indicates the absence of [Role] association with [context.Context]. Did you forget to inject the role using [rbac.ContextWithRole] or [rbac.ContextWithNegotiatedRole]?
-	ErrContextRoleNotFound = errors.New("context does not include an OakACS role value")
-)
-
 const (
 	ContextKeyRole ContextKey = iota
 	ContextKeyRoleName
@@ -73,37 +68,54 @@ func (r RBAC) ContextWithNegotiatedRole(
 	}
 }
 
-func recoverContext(ctx context.Context) (*roleContext, error) {
+// Authorize recovers the role associated with a given context and checks the intent against the role.
+func Authorize(ctx context.Context, i *Intent) (err error) {
 	c, ok := ctx.Value(contextKeySelf).(*roleContext)
-	if ok {
-		return c, nil
-	}
-	// fmt.Printf("Context: %+v", c)
-	return nil, ErrContextRoleNotFound
-}
-
-// ContextAuthorize recovers the role associated with a given context and checks the intent against the role.
-func ContextAuthorize(ctx context.Context, i *Intent) (role string, p Policy, err error) {
-	c, err := recoverContext(ctx)
-	if err != nil {
-		return "", nil, nil
-	}
-	p, err = c.role(ctx, i)
-	return c.roleName, p, err
-}
-
-// ContextAuthorizeEach recovers the role associated with a given context and checks each provided intent against the role.
-func ContextAuthorizeEach(ctx context.Context, i ...*Intent) (role string, p Policy, err error) {
-	c, err := recoverContext(ctx)
-	if err != nil {
-		return "", nil, nil
-	}
-	for _, i := range i {
-		if p, err = c.role(ctx, i); err != nil {
-			return c.roleName, p, err
+	if !ok {
+		return &AccessDeniedError{
+			Role:   "",
+			Policy: nil,
 		}
 	}
-	return c.roleName, nil, err
+	p, err := c.role(ctx, i)
+	if errors.Is(err, Allow) {
+		return nil
+	}
+	if errors.Is(err, Deny) {
+		return &AccessDeniedError{
+			Role:   c.roleName,
+			Policy: p,
+		}
+	}
+	return &AccessDeniedError{Role: c.roleName, Policy: p, Cause: err}
+}
+
+// AuthorizeEach recovers the role associated with a given context and checks each provided intent against the role.
+func AuthorizeEach(ctx context.Context, i ...*Intent) (err error) {
+	c, ok := ctx.Value(contextKeySelf).(*roleContext)
+	if !ok {
+		return &AccessDeniedError{
+			Role:   "",
+			Policy: nil,
+		}
+	}
+
+	var p Policy
+	for _, intent := range i {
+		p, err = c.role(ctx, intent)
+		if errors.Is(err, Allow) {
+			continue
+		}
+		if errors.Is(err, Deny) {
+			return &AccessDeniedError{
+				Role:   c.roleName,
+				Policy: p,
+			}
+		}
+		return &AccessDeniedError{Role: c.roleName, Policy: p, Cause: err}
+	}
+	return nil
+
 }
 
 // ContextMiddleWare is an example of an HTTP middleware that injects a role into a [context.Context], which can later be recovered using [ContextMount] or [ContextAuthorize] or [ContextAuthorizeEach]. The role here is taken from the HTTP header, but in production it should be taken from a session or token, like JWT, value.
