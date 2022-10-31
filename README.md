@@ -71,3 +71,4 @@ Logging can be approached in several different ways:
 ### Authentication
 
 - [Authelia](https://github.com/authelia/authelia)
+- [Ballerine](https://github.com/ballerine-io/ballerine)

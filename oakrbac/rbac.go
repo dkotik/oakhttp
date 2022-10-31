@@ -1,6 +1,50 @@
 /*
 
-Package oakrbac description...
+Package oakrbac is a simple flexible _role-based access control_ (RBAC) implementation.
+
+A role is constructed from a set of policies that are sequentially evaluated until one of the policies returns an [Allow] or a [Deny] sentinel value or an error.
+
+# Usage
+
+OakRBAC leans on [context.Context] as the main mechanism for passing access rights through the execution stack.
+
+	// 1. Initialize the [RBAC]:
+	var RBAC = oakrbac.New(
+		oakrbac.WithNewRole("administrator", oakrbac.AllowEverything)
+	)
+
+	// 2. Inject authorization context:
+	ctx := RBAC.ContextWithRole("administrator", context.TODO())
+
+	// 3. Authorize an action [Intent]:
+	matchedPolicy, err := oakrbac.Authorize(ctx, &oakrbac.Intent{
+		Action: oakrbac.ActionCreate,
+		ResourcePath: oakrbac.NewResourcePath(
+			"myService",
+			"user",
+			"userUUID",
+		)
+	})
+
+	// 4. Act on authorization result:
+	if err != nil {
+		// access denied, log it using [AuthorizationError.Message] method:
+		log.Println(err.Message())
+		return err
+	}
+
+	// when err == nil, [AuthorizationError.Message] method returns "access granted"
+	log.Println(err.Message())
+
+# Policies
+
+OakRBAC comes with only two default policies: [AllowEverything] and [DenyEverything]. You will write or generate policies to match your domain logic.
+
+# Predicates
+
+An [Intent] can be created with a set of [Predicate] functions that allow a [Policy] to run code snippets against the resource to examine it during evaluation.
+
+Predicates enable writing incredibly powerful and performant access control policies.
 
 */
 package oakrbac

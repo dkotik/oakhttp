@@ -15,6 +15,10 @@ const (
 	ResourcePathWildCardTail = ">"
 )
 
+func NewResourcePath(p ...string) ResourcePath {
+	return ResourcePath(p)
+}
+
 func (r ResourcePath) String() string {
 	if r == nil {
 		return "<nil>"
