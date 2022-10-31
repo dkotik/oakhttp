@@ -8,6 +8,7 @@ import (
 
 // A Role is an [Intent] authorization provider. It returns true when authorization is granted. The returned policy points to [Policy] that granted or denied authorization or was interrupted by an error. The pointer can be used for observability using either [Policy.Name] and [Policy.NameFileLine] methods, which can handle `nil` values.
 //
+// Role always returns an error!
 // TODO: retype the comment above
 type Role func(context.Context, *Intent) (Policy, error)
 

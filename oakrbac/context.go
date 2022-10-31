@@ -69,53 +69,16 @@ func (r RBAC) ContextWithNegotiatedRole(
 }
 
 // Authorize recovers the role associated with a given context and checks the intent against the role.
-func Authorize(ctx context.Context, i *Intent) (err error) {
+func Authorize(ctx context.Context, i *Intent) (Policy, *AuthorizationError) {
 	c, ok := ctx.Value(contextKeySelf).(*roleContext)
 	if !ok {
-		return &AccessDeniedError{
-			Role:   "",
-			Policy: nil,
-		}
+		return nil, &AuthorizationError{Cause: ErrContextRoleNotFound}
 	}
 	p, err := c.role(ctx, i)
 	if errors.Is(err, Allow) {
-		return nil
+		return p, nil
 	}
-	if errors.Is(err, Deny) {
-		return &AccessDeniedError{
-			Role:   c.roleName,
-			Policy: p,
-		}
-	}
-	return &AccessDeniedError{Role: c.roleName, Policy: p, Cause: err}
-}
-
-// AuthorizeEach recovers the role associated with a given context and checks each provided intent against the role.
-func AuthorizeEach(ctx context.Context, i ...*Intent) (err error) {
-	c, ok := ctx.Value(contextKeySelf).(*roleContext)
-	if !ok {
-		return &AccessDeniedError{
-			Role:   "",
-			Policy: nil,
-		}
-	}
-
-	var p Policy
-	for _, intent := range i {
-		p, err = c.role(ctx, intent)
-		if errors.Is(err, Allow) {
-			continue
-		}
-		if errors.Is(err, Deny) {
-			return &AccessDeniedError{
-				Role:   c.roleName,
-				Policy: p,
-			}
-		}
-		return &AccessDeniedError{Role: c.roleName, Policy: p, Cause: err}
-	}
-	return nil
-
+	return p, &AuthorizationError{Policy: p, Cause: err}
 }
 
 // ContextMiddleWare is an example of an HTTP middleware that injects a role into a [context.Context], which can later be recovered using [ContextMount] or [ContextAuthorize] or [ContextAuthorizeEach]. The role here is taken from the HTTP header, but in production it should be taken from a session or token, like JWT, value.

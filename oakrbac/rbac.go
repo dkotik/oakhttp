@@ -43,49 +43,14 @@ func New(options ...Option) (rbac RBAC, err error) {
 	return rbac, nil
 }
 
-func (r RBAC) Authorize(ctx context.Context, role string, i *Intent) error {
+func (r RBAC) Authorize(ctx context.Context, role string, i *Intent) (Policy, *AuthorizationError) {
 	found, ok := r[role]
 	if !ok {
-		return &AccessDeniedError{
-			Role:   "",
-			Policy: nil,
-		}
+		return nil, &AuthorizationError{Cause: ErrRoleNotFound}
 	}
 	p, err := found(ctx, i)
 	if errors.Is(err, Allow) {
-		return nil
+		return p, nil
 	}
-	if errors.Is(err, Deny) {
-		return &AccessDeniedError{
-			Role:   role,
-			Policy: p,
-		}
-	}
-	return &AccessDeniedError{Role: role, Policy: p, Cause: err}
-}
-
-func (r RBAC) AuthorizeEach(ctx context.Context, role string, i ...*Intent) (err error) {
-	found, ok := r[role]
-	if !ok {
-		return &AccessDeniedError{
-			Role:   "",
-			Policy: nil,
-		}
-	}
-
-	var p Policy
-	for _, intent := range i {
-		p, err = found(ctx, intent)
-		if errors.Is(err, Allow) {
-			continue
-		}
-		if errors.Is(err, Deny) {
-			return &AccessDeniedError{
-				Role:   role,
-				Policy: p,
-			}
-		}
-		return &AccessDeniedError{Role: role, Policy: p, Cause: err}
-	}
-	return nil
+	return p, &AuthorizationError{Policy: p, Cause: err}
 }

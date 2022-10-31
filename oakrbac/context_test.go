@@ -12,7 +12,7 @@ func TestContextOperations(t *testing.T) {
 
 	ctx := r.ContextWithNegotiatedRole(context.Background(), "manager", "administrator")
 
-	err := Authorize(ctx, &Intent{})
+	_, err := Authorize(ctx, &Intent{})
 	if err != nil {
 		t.Error(err)
 	}

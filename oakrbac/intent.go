@@ -57,7 +57,9 @@ type Intent struct {
 }
 
 func (i *Intent) String() string {
-	return fmt.Sprintf("%s@%s", i.Action, strings.Join(i.ResourcePath, ResourcePathSeparator))
+	return fmt.Sprintf("perform action %q on resource %q",
+		i.Action,
+		strings.Join(i.ResourcePath, ResourcePathSeparator))
 }
 
 // MatchAction returns true if the [Intent] [Action] matches exactly any one of the provided actions.
