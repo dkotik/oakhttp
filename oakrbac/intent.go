@@ -3,7 +3,6 @@ package oakrbac
 import (
 	"context"
 	"fmt"
-	"strings"
 )
 
 type (
@@ -19,15 +18,6 @@ type (
 )
 
 const (
-	// ResourcePathSeparator divides the sections of resource paths and masks. The value is used for parsing and printing their plain string reprsentations.
-	ResourcePathSeparator = "/"
-
-	// ResourcePathWildCardSegment matches any single value of a resource path. The segment must be present to match.
-	ResourcePathWildCardSegment = "*"
-
-	// ResourcePathWildCardTail matches any resource path ending segments, present or not. Any resource path mask value after ResourcePathWildCardSegment is ignored.
-	ResourcePathWildCardTail = ">"
-
 	ActionCreate   Action = "create"
 	ActionRetrieve Action = "retrieve"
 	ActionUpdate   Action = "update"
@@ -52,14 +42,12 @@ const (
 // An Intent is the desire of a role to carry out a given [Action] on a resource.
 type Intent struct {
 	Action       Action
-	ResourcePath []string
+	ResourcePath ResourcePath
 	Predicates   map[string]Predicate
 }
 
 func (i *Intent) String() string {
-	return fmt.Sprintf("perform action %q on resource %q",
-		i.Action,
-		strings.Join(i.ResourcePath, ResourcePathSeparator))
+	return fmt.Sprintf("perform action %q on resource %q", i.Action, i.ResourcePath)
 }
 
 // MatchAction returns true if the [Intent] [Action] matches exactly any one of the provided actions.
@@ -70,33 +58,6 @@ func (i *Intent) MatchAction(actions ...Action) bool {
 		}
 	}
 	return false
-}
-
-// MatchResourcePath returns true if the [Intent] resource path matches mask segments. The [ResourcePathWildCardSegment] matches any present value. The [ResourcePathWildCardTail] matches any values to the end of the path.
-func (i *Intent) MatchResourcePath(mask ...string) bool {
-	// available := strings.Split(i.ResourcePath, ResourcePathSeparator)
-	lenA, lenB := len(i.ResourcePath), len(mask)
-
-	if lenB > lenA {
-		if mask[lenA] != ResourcePathWildCardTail {
-			return false
-		}
-		mask = mask[:lenA] // chop tail // TODO: test this.
-	}
-	for position, p := range mask {
-		switch p {
-		case ResourcePathWildCardTail:
-			return true
-		case ResourcePathWildCardSegment, i.ResourcePath[position]:
-			continue
-		default:
-			return false
-		}
-	}
-	if lenB < lenA {
-		return false // must match every segment
-	}
-	return true
 }
 
 // MatchPredicate returns true if [Intent] [Predicate] was satisfied with provided desired values.

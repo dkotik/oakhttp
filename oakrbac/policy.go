@@ -103,7 +103,7 @@ func DenyEverything(_ context.Context, _ *Intent) error {
 func AllowActionsForResourcesMatching(actions []Action, resourceMasks [][]string) Policy {
 	return func(ctx context.Context, i *Intent) error {
 		for _, resourceMask := range resourceMasks {
-			if i.MatchResourcePath(resourceMask...) {
+			if i.ResourcePath.Match(resourceMask...) {
 				if i.MatchAction(actions...) {
 					return Allow
 				}
