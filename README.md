@@ -70,5 +70,6 @@ Logging can be approached in several different ways:
 
 ### Authentication
 
+- [OpenFGA, Zanzibar-based](https://github.com/openfga/openfga)
 - [Authelia](https://github.com/authelia/authelia)
 - [Ballerine](https://github.com/ballerine-io/ballerine)

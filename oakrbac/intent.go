@@ -50,43 +50,18 @@ func (i *Intent) String() string {
 	return fmt.Sprintf("perform action %q on resource %q", i.Action, i.ResourcePath)
 }
 
-// MatchAction returns true if the [Intent] [Action] matches exactly any one of the provided actions.
-func (i *Intent) MatchAction(actions ...Action) bool {
-	for _, action := range actions {
-		if action == i.Action {
+// In returns true if the [Action] matches one of the provided set.
+func (a Action) In(set ...Action) bool {
+	for _, action := range set {
+		if action == a {
 			return true
 		}
 	}
 	return false
 }
 
-// MatchPredicate returns true if [Intent] [Predicate] was satisfied with provided desired values.
-func (i *Intent) MatchPredicate(ctx context.Context, name string, desiredValues ...string) (result bool, err error) {
-	// initiliazed map can be checked using `_, ok :=`
-	// if i.Predicates == nil {
-	// 	return false, fmt.Errorf("cannot evaluate predicate for property %q: %w", property, ErrNoPredicates)
-	// }
-
-	predicate, ok := i.Predicates[name]
-	if !ok {
-		return false, &PredicateError{
-			Name:  name,
-			Cause: ErrPredicateNotFound,
-		}
-	}
-
-	if result, err = predicate(ctx, desiredValues...); err != nil {
-		return false, &PredicateError{
-			Name:  name,
-			Cause: err,
-		}
-	}
-
-	return
-}
-
-// PredicateEither combines a [Predicate] list into one that succeeds on first positive match.
-func PredicateEither(ps ...Predicate) Predicate {
+// PredicateAny combines a [Predicate] list into one that succeeds on first positive match.
+func PredicateAny(ps ...Predicate) Predicate {
 	return func(ctx context.Context, desiredValues ...string) (ok bool, err error) {
 		for _, p := range ps {
 			ok, err = p(ctx, desiredValues...)

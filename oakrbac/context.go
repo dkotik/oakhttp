@@ -47,7 +47,7 @@ func (r RBAC) ContextWithRole(
 	}
 }
 
-// ContextWithNegotiatedRole injects the chosen role into [context.Context]. If the chose role was not registered, the defaultRole is used. Panics if the defaultRole was not registered.
+// ContextWithNegotiatedRole injects the chosen role into [context.Context]. If the role was not registered, the defaultRole is used. Panics if the defaultRole was not registered.
 func (r RBAC) ContextWithNegotiatedRole(
 	parent context.Context,
 	role string,

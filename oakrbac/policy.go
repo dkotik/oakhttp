@@ -104,7 +104,7 @@ func AllowActionsForResourcesMatching(actions []Action, resourceMasks [][]string
 	return func(ctx context.Context, i *Intent) error {
 		for _, resourceMask := range resourceMasks {
 			if i.ResourcePath.Match(resourceMask...) {
-				if i.MatchAction(actions...) {
+				if i.Action.In(actions...) {
 					return Allow
 				}
 			}

@@ -2,7 +2,6 @@ package oakrbac
 
 import (
 	"errors"
-	"fmt"
 )
 
 var (
@@ -13,16 +12,10 @@ var (
 	Deny = errors.New("authorization denied")
 	//revive:enable:error-naming
 
-	// ErrNoPolicyMatched blocks authorization because every role policy returned a `nil` value.
-	// ErrNoPolicyMatched = errors.New("no authorization policy matched")
-	// ErrNoPredicates     = errors.New("there are no predicates attached to the Intent")
-
 	// ErrContextRoleNotFound indicates that a context does not include a role that can be retrieved using the package context key. If you see this error, you probably forgot to inject the role using either [ContextWithRole] or [rbac.ContextInjectorWithFallback] early in the execution path. This is typically done using a middleware function like [rbac.ContextMiddleWare].
 	// ErrContextRoleNotFound indicates the absence of [Role] association with [context.Context]. Did you forget to inject the role using [rbac.ContextWithRole] or [rbac.ContextWithNegotiatedRole]?
-	ErrContextRoleNotFound = errors.New("OakACS role context not found in context chain")
-	ErrRoleNotFound        = errors.New("role is not registered")
-	// ErrMissingPredicate is raised when a [Policy] cannot locate the desired predicate in an [Intent].
-	ErrPredicateNotFound = errors.New("predicate does not exist")
+	ErrContextRoleNotFound = errors.New("role context missing in context chain")
+	ErrRoleNotFound        = errors.New("role missing")
 )
 
 // AuthorizationError expresses the output of a [Role] as an opaque [Deny] error to prevent attackers from discovering the internals of the access control system by analyzing its error messages. Use [AuthorizationError.Message] for logging and debugging to discover the conditions for authorization failure.
@@ -53,18 +46,4 @@ func (e *AuthorizationError) Message() string {
 		return "access denied by matched policy"
 	}
 	return "access denied: policy evaluation failed: " + e.Cause.Error()
-}
-
-// PredicateError is raised when a [Policy] cannot execute an [Intent] [Predicate].
-type PredicateError struct {
-	Name  string
-	Cause error
-}
-
-func (e *PredicateError) Error() string {
-	return fmt.Sprintf("predicate %q failure: %s", e.Name, e.Cause)
-}
-
-func (e *PredicateError) Unwrap() error {
-	return e.Cause
 }

@@ -1,6 +1,6 @@
 /*
 
-Package oakrbac is a simple flexible _role-based access control_ (RBAC) implementation.
+Package oakrbac is a simple flexible Role-Based Access Control (RBAC) implementation.
 
 A role is constructed from a set of policies that are sequentially evaluated until one of the policies returns an [Allow] or a [Deny] sentinel value or an error.
 
@@ -9,9 +9,9 @@ A role is constructed from a set of policies that are sequentially evaluated unt
 OakRBAC leans on [context.Context] as the main mechanism for passing access rights through the execution stack.
 
 	// 1. Initialize the [RBAC]:
-	var RBAC = oakrbac.New(
+	var RBAC = oakrbac.Must(oakrbac.New(
 		oakrbac.WithNewRole("administrator", oakrbac.AllowEverything)
-	)
+	))
 
 	// 2. Inject authorization context:
 	ctx := RBAC.ContextWithRole("administrator", context.TODO())
