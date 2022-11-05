@@ -10,8 +10,8 @@ import (
 )
 
 type (
-	// Policy returns Allow sentinel error if the session is permitted to interact with the context.
-	// Policy returns Deny sentinel error to interrupt the matching loop.
+	// Policy returns [Allow] sentinel error if the session is permitted to interact with the context.
+	// Policy returns [Deny] sentinel error to interrupt the matching loop.
 	// Policy returns `nil` if it did not match, but another policy might match.
 	Policy func(context.Context, *Intent) error
 )

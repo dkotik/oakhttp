@@ -10,7 +10,7 @@ func TestContextOperations(t *testing.T) {
 		WithNewRole("administrator", AllowEverything),
 	))
 
-	ctx := r.ContextWithNegotiatedRole(context.Background(), "manager", "administrator")
+	ctx := r.ContextWithRole(context.Background(), "administrator")
 
 	_, err := Authorize(ctx, &Intent{})
 	if err != nil {

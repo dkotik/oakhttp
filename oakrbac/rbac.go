@@ -57,10 +57,10 @@ import (
 
 type (
 	// RBAC is a simple Role Based Access Control system.
-	RBAC map[string]Role
+	RBAC func(string) Role
 
 	// Option customizes the [RBAC] constructor [New].
-	Option func(RBAC) error
+	Option func(map[string]Role) error
 )
 
 // Must panics if an error is associated with [RBAC] constructor. Use together with [New].
@@ -72,29 +72,31 @@ func Must(r RBAC, err error) RBAC {
 }
 
 // New builds an [RBAC] using provided [Option] set.
-func New(options ...Option) (rbac RBAC, err error) {
-	rbac = make(RBAC)
-	for _, option := range append(options, func(r RBAC) error {
-		if len(r) == 0 {
+func New(withOptions ...Option) (rbac RBAC, err error) {
+	roles := make(map[string]Role)
+	for _, option := range append(withOptions, func(roles map[string]Role) error {
+		if len(roles) == 0 {
 			return errors.New("provide at least one role")
 		}
 		return nil
 	}) {
-		if err = option(rbac); err != nil {
+		if err = option(roles); err != nil {
 			return nil, fmt.Errorf("cannot create OakRBAC: %w", err)
 		}
 	}
-	return rbac, nil
+	return func(roleName string) (role Role) {
+		role, _ = roles[roleName]
+		return
+	}, nil
 }
 
-func (r RBAC) Authorize(ctx context.Context, role string, i *Intent) (Policy, *AuthorizationError) {
-	found, ok := r[role]
-	if !ok {
-		return nil, &AuthorizationError{Cause: ErrRoleNotFound}
+// Authorize matches the named [Role] against an [Intent]. It returns the [Policy] that granted authorization. The second return value is [AuthorizationError] in place of a generic error.
+func (r RBAC) Authorize(ctx context.Context, roleName string, i *Intent) (policyGrantingAccess Policy, err *AuthorizationError) {
+	role := r(roleName)
+	if role == nil {
+		return nil, &AuthorizationError{
+			Cause: errors.New("role not found: " + roleName),
+		}
 	}
-	p, err := found(ctx, i)
-	if errors.Is(err, Allow) {
-		return p, nil
-	}
-	return p, &AuthorizationError{Policy: p, Cause: err}
+	return role(ctx, i)
 }

@@ -46,6 +46,14 @@ type Intent struct {
 	Predicates   map[string]Predicate
 }
 
+// // Attrs provides [slog.Attr] list that characterizes the [Intent]. Use together with [slog.Log].
+// func (i *Intent) Attrs() []slog.Attr {
+// 	return []slog.Attr{
+// 		slog.String("action", i.Action),
+// 		slog.String("resource", i.ResourcePath),
+// 	}
+// }
+
 func (i *Intent) String() string {
 	return fmt.Sprintf("perform action %q on resource %q", i.Action, i.ResourcePath)
 }
