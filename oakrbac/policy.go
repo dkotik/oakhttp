@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+
+	"golang.org/x/exp/slog"
 )
 
 type (
@@ -60,6 +62,21 @@ func (p Policy) String() string {
 	output.WriteString(", line ")
 	output.WriteString(fmt.Sprintf("%d", line))
 	return output.String()
+}
+
+func (p Policy) LogValue() slog.Value {
+	if p == nil {
+		return slog.StringValue("<no policy matched>")
+	}
+	definition := runtime.FuncForPC(reflect.ValueOf(p).Pointer())
+	name := definition.Name()
+	file, line := definition.FileLine(definition.Entry())
+
+	return slog.GroupValue(
+		slog.String("name", name),
+		slog.String("file", file),
+		slog.IntValue("line", line),
+	)
 }
 
 // PolicyEither combines a [Policy] list into one that return on first [Allow] or error.

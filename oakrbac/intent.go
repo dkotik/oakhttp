@@ -3,6 +3,8 @@ package oakrbac
 import (
 	"context"
 	"fmt"
+
+	"golang.org/x/exp/slog"
 )
 
 type (
@@ -56,6 +58,14 @@ type Intent struct {
 
 func (i *Intent) String() string {
 	return fmt.Sprintf("perform action %q on resource %q", i.Action, i.ResourcePath)
+}
+
+func (i *Intent) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.String("action", i.Action),
+		slog.String("resource", i.ResourcePath.String()),
+		slog.Any("predicates", i.Predicates),
+	)
 }
 
 // In returns true if the [Action] matches one of the provided set.

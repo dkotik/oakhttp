@@ -73,3 +73,7 @@ Logging can be approached in several different ways:
 - [OpenFGA, Zanzibar-based](https://github.com/openfga/openfga)
 - [Authelia](https://github.com/authelia/authelia)
 - [Ballerine](https://github.com/ballerine-io/ballerine)
+
+### Observability
+
+- [Ntfy.sh](https://ntfy.sh/docs/publish/)
