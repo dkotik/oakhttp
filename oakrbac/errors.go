@@ -2,6 +2,7 @@ package oakrbac
 
 import (
 	"errors"
+	"net/http"
 )
 
 var (
@@ -22,6 +23,11 @@ var (
 type AuthorizationError struct {
 	Policy Policy
 	Cause  error
+}
+
+// HTTPStatusCode returns an HTTP status code to satisfy oakhttp.HTTPError interface.
+func (e *AuthorizationError) HTTPStatusCode() int {
+	return http.StatusForbidden
 }
 
 // Unwrap satisfies [errors.Is] and [errors.As] interface requirements.
