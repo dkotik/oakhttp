@@ -5,9 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
 	"net/http"
-
-	"github.com/tdewolff/parse/html"
 )
 
 type Handler[IN any, OUT any] func(context.Context, *IN) (*OUT, error)
@@ -89,7 +88,7 @@ func AdaptRequestPathTailToJSON[OUT any](h func(context.Context, string) (*OUT, 
 	}
 }
 
-func AdaptRequestToHTML[T any, P Validatable[T], OUT any](readLimit int64, t *html.Template, h func(context.Context, P) (*OUT, error)) http.HandlerFunc {
+func AdaptRequestToHTML[T any, P Validatable[T], OUT any](readLimit int64, t *template.Template, h func(context.Context, P) (*OUT, error)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// t.Execute(w, in)
 	}

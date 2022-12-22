@@ -46,7 +46,7 @@ func (e *ValidationError) HTTPStatusCode() int {
 
 func MarshalErrorToJSON(w http.ResponseWriter, err error) error {
 	if httpError, ok := err.(HTTPError); ok {
-		w.WriteHeader(httpError.HTTPStatusCode)
+		w.WriteHeader(httpError.HTTPStatusCode())
 	}
 	// stringer, ok := str.(fmt.Stringer)
 	return json.NewEncoder(w).Encode(map[string]string{

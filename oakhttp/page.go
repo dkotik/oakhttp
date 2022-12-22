@@ -11,7 +11,7 @@ type PageRequest[T any, H HashableByPage[T]] struct {
 	PerPage int
 }
 
-type Page [T]struct {
+type Page[T any] struct {
 	Items []*T
 	Page  int
 	Total int
