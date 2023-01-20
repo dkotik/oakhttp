@@ -10,10 +10,9 @@ import (
 // 	ErrNotFound = errors.New("requested resource was not found")
 // )
 
-type HTTPError interface {
-	HTTPStatusCode() int
+type Error interface {
 	error
-	// WriteResponse(w http.ResponseWriter) error
+	HTTPStatusCode() int
 }
 
 type NotFoundError struct {
@@ -32,7 +31,27 @@ func (e *NotFoundError) Error() string {
 	return "resource \"" + e.resource + "\" was not found"
 }
 
-type ValidationError struct{}
+type ValidationError struct {
+	errors []error
+}
+
+func NewValidationError(fieldError ...error) *ValidationError {
+	return &ValidationError{
+		errors: fieldError,
+	}
+}
+
+func (e *ValidationError) MarshallJSON() []byte {
+	return []byte(`[]`)
+}
+
+func (e *ValidationError) Error() string {
+	return "validation failed"
+}
+
+func (e *ValidationError) Unwrap() []error {
+	return e.errors
+}
 
 func (e *ValidationError) HTTPStatusCode() int {
 	return http.StatusUnprocessableEntity
@@ -45,7 +64,7 @@ func (e *ValidationError) HTTPStatusCode() int {
 // type RequestFactoryError struct{} // not needed, just print
 
 func MarshalErrorToJSON(w http.ResponseWriter, err error) error {
-	if httpError, ok := err.(HTTPError); ok {
+	if httpError, ok := err.(Error); ok {
 		w.WriteHeader(httpError.HTTPStatusCode())
 	}
 	// stringer, ok := str.(fmt.Stringer)

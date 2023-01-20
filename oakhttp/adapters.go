@@ -9,6 +9,8 @@ import (
 	"net/http"
 )
 
+// TODO: create Adapter with injected RequestStruct builder, so that REST APIs can be build by taking fields out of the URL path. Look at new exposed Match function in Fiber for inspiration of parameter extraction: https://github.com/gofiber/fiber/pull/2142
+
 type Handler[IN any, OUT any] func(context.Context, *IN) (*OUT, error)
 
 type PathTailHandler[OUT any] func(context.Context, string) (*OUT, error)

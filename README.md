@@ -1,5 +1,11 @@
 # Oak Access Control System
 
+## TODO
+
+- [ ] Explain how ReBAC is implemented using oakrbac.Predicate to address the distinction explained here: https://dev.to/egeaytin/rbac-vs-rebac-when-to-use-them-47c4
+- [ ] Figure out the best way to mitigate CSRF:
+    - [ ] https://dev.to/justlorain/use-session-middleware-to-implement-distributed-session-solution-based-on-redis-5b65 (example is buried)
+
 ## Features
 
 1. Safety: static types, immutability, and proper defaults.

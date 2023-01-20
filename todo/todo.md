@@ -9,5 +9,7 @@
 
 - [ ] Study https://github.com/TwiN/g8
 - [ ] Study Zanzibar and Authzed https://authzed.com/
-- [ ] Study casbin: https://casbin.org/docs/en/how-it-works?utm_source=pocket_mylist
+- [ ] Study casbin: https://casbin.org/docs/en/how-it-works
 - [ ] Study OIDC: https://github.com/XenitAB/go-oidc-middleware
+- [ ] Study passwordless:
+    - [ ] https://github.com/teamhanko/hanko
