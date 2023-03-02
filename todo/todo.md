@@ -11,5 +11,8 @@
 - [ ] Study Zanzibar and Authzed https://authzed.com/
 - [ ] Study casbin: https://casbin.org/docs/en/how-it-works
 - [ ] Study OIDC: https://github.com/XenitAB/go-oidc-middleware
+- [ ] Study session offerings:
+  - [ ] <https://github.com/alexedwards/scs>
+  - [ ] https://github.com/Acebond/session/blob/main/session.go
 - [ ] Study passwordless:
     - [ ] https://github.com/teamhanko/hanko

@@ -9,6 +9,7 @@ import (
 	"net/http"
 )
 
+// TODO: some excellent suggestions here, regarding UUID extraction: https://haykot.dev/blog/reduce-boilerplate-in-go-http-handlers-with-go-generics/
 // TODO: create Adapter with injected RequestStruct builder, so that REST APIs can be build by taking fields out of the URL path. Look at new exposed Match function in Fiber for inspiration of parameter extraction: https://github.com/gofiber/fiber/pull/2142
 
 type Handler[IN any, OUT any] func(context.Context, *IN) (*OUT, error)

@@ -2,6 +2,7 @@ package oakhttp
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 )
 
@@ -9,6 +10,14 @@ import (
 // // not needed, just print
 // 	ErrNotFound = errors.New("requested resource was not found")
 // )
+
+// Unwrap asserts that some error wraps [Error] and returns it. Use the result together with [http.Error]. Log the original error to prevent leaking potentially sensitive information to the client while recording it on the server.
+func Unwrap(wrapped error) (err Error, ok bool) {
+	if errors.As(wrapped, &err) {
+		return err, true
+	}
+	return nil, false
+}
 
 type Error interface {
 	error
