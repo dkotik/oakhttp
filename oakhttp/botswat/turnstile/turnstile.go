@@ -5,6 +5,8 @@ Package turnstile creates a secure by default humanity verifier backed by Cloudf
 On the client include the the following script:
 
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onloadTurnstileCallback" async defer></script>
+
+Cloudflare Turnstile documentation: <https://developers.cloudflare.com/turnstile/>
 */
 package turnstile
 
@@ -41,10 +43,10 @@ func New(withOptions ...Option) (botswat.Verifier, error) {
 		}
 	}
 
-	return func(ctx context.Context, response, IP string) (data string, err error) {
+	return func(ctx context.Context, clientResponseToken, IP string) (data string, err error) {
 		payload, err := json.Marshal(&Request{
 			Secret:   o.Secret,
-			Response: response,
+			Response: clientResponseToken,
 			RemoteIP: IP,
 		})
 		if err != nil {
@@ -80,6 +82,7 @@ func New(withOptions ...Option) (botswat.Verifier, error) {
 			return "", errors.New("turnstile response action is not allowed")
 		}
 
+		// cData is customer payload that can be used to attach customer data to the challenge throughout its issuance and which is returned upon validation. This can only contain up to 255 alphanumeric characters including _ and -.
 		return r.CData, nil
 	}, nil
 }

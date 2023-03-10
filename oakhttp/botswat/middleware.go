@@ -7,13 +7,7 @@ import (
 	"github.com/dkotik/oakacs/oakhttp"
 )
 
-func New(
-	extractor ResponseExtractor,
-	withOptions ...Option,
-) (oakhttp.Middleware, error) {
-	if extractor == nil {
-		return nil, errors.New("cannot use a <nil> response extractor")
-	}
+func New(withOptions ...Option) (oakhttp.Middleware, error) {
 	// verifier, err := New(withOptions)
 	// if err != nil {
 	// 	return nil, err
