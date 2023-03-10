@@ -1,0 +1,4 @@
+github.com/dkotik/oakacs/oakhttp v0.0.2 h1:wiY489EJM7/xREg4w+NUWHcUqp5k5XGCWixjfCqnxmM=
+github.com/dkotik/oakacs/oakhttp v0.0.2/go.mod h1:k2sgeD3+1Ks8ifD1l5BZ6MeGsKX9JvF7d1soE+mXOoM=
+github.com/relvacode/iso8601 v1.3.0 h1:HguUjsGpIMh/zsTczGN3DVJFxTU/GX+MMmzcKoMO7ko=
+github.com/relvacode/iso8601 v1.3.0/go.mod h1:FlNp+jz+TXpyRqgmM7tnzHHzBnz776kmAH2h3sZCn0I=

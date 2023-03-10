@@ -1,4 +1,4 @@
-package turnstile
+package hcaptcha
 
 import (
 	"errors"
@@ -41,22 +41,20 @@ func WithDefaultOptions() Option {
 		}
 		if o.Secret == "" {
 			if err = WithSecret(
-				os.Getenv("TURNSTILE_SECRET_KEY"),
+				os.Getenv("HCAPTCHA_SECRET_KEY"),
 			)(o); err != nil {
-				return fmt.Errorf("please check TURNSTILE_SECRET_KEY environment variable: %w", err)
+				return fmt.Errorf("please check HCAPTCHA_SECRET_KEY environment variable: %w", err)
 			}
 		}
 		if o.Secret == "" {
 			if err = WithHostname(
-				os.Getenv("TURNSTILE_HOST_NAME"),
+				os.Getenv("HCAPTCHA_HOST_NAME"),
 			)(o); err != nil {
-				return fmt.Errorf("please check TURNSTILE_HOST_NAME environment variable: %w", err)
+				return fmt.Errorf("please check HCAPTCHA_HOST_NAME environment variable: %w", err)
 			}
 		}
 		if o.Endpoint == "" {
-			if err = WithEndpoint(
-				"https://challenges.cloudflare.com/turnstile/v0/siteverify",
-			)(o); err != nil {
+			if err = WithEndpoint("https://hcaptcha.com/siteverify")(o); err != nil {
 				return err
 			}
 		}

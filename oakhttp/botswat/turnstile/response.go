@@ -33,16 +33,16 @@ type Response struct {
 }
 
 func (r *Response) Time() (time.Time, error) {
-	return iso8601.ParseString(resp.ChallengeTime)
+	return iso8601.ParseString(r.ChallengeTime)
 }
 
 func (r *Response) Validate() error {
 	if l := len(r.ErrorCodes); l > 0 {
-		errors := make([]error, l)
+		errs := make([]error, l)
 		for i, code := range r.ErrorCodes {
-			errors[i] = turnstileError(code)
+			errs[i] = turnstileError(code)
 		}
-		return errors.Join(errors...)
+		return errors.Join(errs...)
 	}
 	if r.Success == false {
 		return errors.New("request rejected")

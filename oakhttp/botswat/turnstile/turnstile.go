@@ -16,14 +16,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/dkotik/oakacs/oakhttp/botswat"
 )
 
-type Verifier func(ctx context.Context, response, IP string) (string, error)
-
-type ResponseExtractor func(r *http.Request) (string, error)
-
-func New(withOptions ...Option) (Verifier, error) {
-	options := &options{}
+func New(withOptions ...Option) (botswat.Verifier, error) {
+	o := &options{}
 	var err error
 	for _, option := range append(
 		withOptions,
@@ -38,14 +36,14 @@ func New(withOptions ...Option) (Verifier, error) {
 			return nil
 		},
 	) {
-		if err = option(options); err != nil {
+		if err = option(o); err != nil {
 			return nil, fmt.Errorf("cannot initialize Cloudflare Turnstile verifier: %w", err)
 		}
 	}
 
 	return func(ctx context.Context, response, IP string) (data string, err error) {
 		payload, err := json.Marshal(&Request{
-			Secret:   options.Secret,
+			Secret:   o.Secret,
 			Response: response,
 			RemoteIP: IP,
 		})
@@ -53,36 +51,35 @@ func New(withOptions ...Option) (Verifier, error) {
 			return "", fmt.Errorf("JSON encoding failed: %w", err)
 		}
 
-		request, err := http.NewRequest("POST", options.Endpoint, payload)
+		request, err := http.NewRequest("POST", o.Endpoint, bytes.NewReader(payload))
 		if err != nil {
 			return "", fmt.Errorf("invalid HTTP API request: %w", err)
 		}
 		request = request.WithContext(ctx)
-		response, err := options.HTTPClient.Do(request)
+		hr, err := o.HTTPClient.Do(request)
 		if err != nil {
 			return "", fmt.Errorf("HTTP API request failed: %w", err)
 		}
-		defer response.Body.Close()
+		defer hr.Body.Close()
 
 		var r *Response
-		err := json.NewDecoder(
-			io.LimitReader(bytes.NewReader(response.Body), responseReadLimit),
-		).Decode(&r)
-		if err != nil {
+		if err = json.NewDecoder(
+			io.LimitReader(hr.Body, responseReadLimit),
+		).Decode(&r); err != nil {
 			return "", fmt.Errorf("JSON decoding failure: %w", err)
 		}
 		if err = r.Validate(); err != nil {
 			return "", fmt.Errorf("turnstile request failed: %w", err)
 		}
 
-		if r.Hostname != options.Hostname {
+		if r.Hostname != o.Hostname {
 			return "", errors.New("turnstile response and request hostnames do not match")
 		}
 
-		if !options.IsAllowedAction(r.Action) {
+		if !o.IsAllowedAction(r.Action) {
 			return "", errors.New("turnstile response action is not allowed")
 		}
 
 		return r.CData, nil
-	}
+	}, nil
 }
