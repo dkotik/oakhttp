@@ -75,7 +75,7 @@ func (p Policy) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.String("name", name),
 		slog.String("file", file),
-		slog.IntValue("line", line),
+		slog.Int("line", line),
 	)
 }
 

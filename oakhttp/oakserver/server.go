@@ -1,4 +1,4 @@
-package server
+package oakserver
 
 // TODO: add base context! so that requests are .Deadline-aware!!! Otherwise http package uses context.Background by default. Make this into WithBaseContext() option.
 // httpServer := &http.Server{

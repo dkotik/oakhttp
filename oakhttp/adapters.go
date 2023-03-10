@@ -12,9 +12,9 @@ import (
 // TODO: some excellent suggestions here, regarding UUID extraction: https://haykot.dev/blog/reduce-boilerplate-in-go-http-handlers-with-go-generics/
 // TODO: create Adapter with injected RequestStruct builder, so that REST APIs can be build by taking fields out of the URL path. Look at new exposed Match function in Fiber for inspiration of parameter extraction: https://github.com/gofiber/fiber/pull/2142
 
-type Handler[IN any, OUT any] func(context.Context, *IN) (*OUT, error)
+type Adapter[IN any, OUT any] func(context.Context, *IN) (*OUT, error)
 
-type PathTailHandler[OUT any] func(context.Context, string) (*OUT, error)
+type PathTailAdapter[OUT any] func(context.Context, string) (*OUT, error)
 
 // Validatable is a generic interface that requires type T to be a pointer and implement the Validate method. It complements the adapter definitions. See https://stackoverflow.com/questions/72090387/what-is-the-generic-type-for-a-pointer-that-implements-an-interface
 type Validatable[T any] interface {

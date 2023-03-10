@@ -22,7 +22,7 @@ func TestPolicyReflection(t *testing.T) {
 	}
 
 	l := p.Line()
-	expectedLine := 94
+	expectedLine := 111
 	if l != expectedLine {
 		t.Fatalf("policy line `%d` did not match `%d`", l, expectedLine)
 	}

@@ -62,7 +62,7 @@ func (i *Intent) String() string {
 
 func (i *Intent) LogValue() slog.Value {
 	return slog.GroupValue(
-		slog.String("action", i.Action),
+		slog.String("action", string(i.Action)),
 		slog.String("resource", i.ResourcePath.String()),
 		slog.Any("predicates", i.Predicates),
 	)

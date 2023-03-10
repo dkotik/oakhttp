@@ -5,4 +5,6 @@ package oakhttp
 
 import "net/http"
 
-type Middleware func(http.Handler) http.Handler
+type Handler func(w http.ResponseWriter, r *http.Request) error
+
+type Middleware func(Handler) Handler
