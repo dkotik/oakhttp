@@ -1,8 +1,6 @@
 package turnstile
 
 import (
-	"errors"
-	"fmt"
 	"time"
 
 	"github.com/relvacode/iso8601"
@@ -37,36 +35,5 @@ func (r *Response) Time() (time.Time, error) {
 }
 
 func (r *Response) Validate() error {
-	if l := len(r.ErrorCodes); l > 0 {
-		errs := make([]error, l)
-		for i, code := range r.ErrorCodes {
-			errs[i] = turnstileError(code)
-		}
-		return errors.Join(errs...)
-	}
-	if r.Success == false {
-		return errors.New("request rejected")
-	}
-	return nil
-}
-
-func turnstileError(code string) error {
-	switch code {
-	case "missing-input-secret":
-		return errors.New("request is missing the secret key")
-	case "invalid-input-secret":
-		return errors.New("invalid secret key")
-	case "missing-input-response":
-		return errors.New("empty client response")
-	case "invalid-input-response":
-		return errors.New("invalid client response")
-	case "bad-request":
-		return errors.New("malformed request")
-	case "timeout-or-duplicate":
-		return errors.New("client response expired")
-	case "internal-error":
-		return errors.New("request failed")
-	default:
-		return fmt.Errorf("unknown turnstile error: %s", code)
-	}
+	return botswat.NewErrorFromCodes(r.ErrorCodes...)
 }

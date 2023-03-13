@@ -2,11 +2,21 @@ package botswat
 
 import (
 	"context"
-	"errors"
 	"net/http"
 )
 
-var ErrNotHuman = errors.New("robot detected")
+type Botswat interface {
+	ResponseTokenPrompt() []byte
+
+	// VerifyResponseToken should return `nil` for valid tokens, [ErrNotHuman] for rejected tokens, or an [Error] for any other condition.
+	//
+	// A response may only be validated once. If the same response is presented twice, the second and each subsequent request will generate an error stating that the response has already been consumed.
+	VerifyResponseToken(
+		ctx context.Context,
+		clientToken string,
+		clientIPAddress string,
+	) error
+}
 
 // Verifier returns [ErrNotHuman] if client response was not recognized as valid.
 //
