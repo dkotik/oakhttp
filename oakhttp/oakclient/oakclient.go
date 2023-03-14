@@ -1,3 +1,6 @@
+/*
+Package oakclient provides a secure HTTP client.
+*/
 package oakclient
 
 import (

@@ -1,3 +1,6 @@
+/*
+Package oaktoken provides a secure random string factory that can be used for session or other types of tokens.
+*/
 package oaktoken
 
 import (
