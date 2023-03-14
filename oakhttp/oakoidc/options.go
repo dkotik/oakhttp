@@ -16,17 +16,17 @@ type SessionAdapter func(
 	context.Context,
 	*oauth2.Token,
 	*oidc.UserInfo,
-) error
+) (finishURL string, err error)
 
 type options struct {
 	SessionAdapter SessionAdapter
 	TokenFactory   oaktoken.Factory
-	CliendID       string
+	ClientID       string
 	ClientSecret   string
 	DiscoveryURL   string
 	CSRFCookieName string
 	Scopes         []string
-	RedirectURL    string
+	CallbackURL    string
 }
 
 type Option func(*options) error
@@ -45,18 +45,18 @@ func WithDefaultOptions() Option {
 			}
 		}
 		if o.ClientID == "" {
-			if err = WithClientID(os.Getenv("OPENID_CONNECT_KEY")); err != nil {
-				return fmt.Errorf("environment variable OPENID_CONNECT_KEY rejected: %w")
+			if err = WithClientID(os.Getenv("OPENID_CONNECT_KEY"))(o); err != nil {
+				return fmt.Errorf("environment variable OPENID_CONNECT_KEY rejected: %w", err)
 			}
 		}
 		if o.ClientSecret == "" {
-			if err = WithClientSecret(os.Getenv("OPENID_CONNECT_SECRET")); err != nil {
-				return fmt.Errorf("environment variable OPENID_CONNECT_SECRET rejected: %w")
+			if err = WithClientSecret(os.Getenv("OPENID_CONNECT_SECRET"))(o); err != nil {
+				return fmt.Errorf("environment variable OPENID_CONNECT_SECRET rejected: %w", err)
 			}
 		}
 		if o.DiscoveryURL == "" {
-			if err = WithDiscoveryURL(os.Getenv("OPENID_CONNECT_DISCOVERY_URL")); err != nil {
-				return fmt.Errorf("environment variable OPENID_CONNECT_DISCOVERY_URL rejected: %w")
+			if err = WithDiscoveryURL(os.Getenv("OPENID_CONNECT_DISCOVERY_URL"))(o); err != nil {
+				return fmt.Errorf("environment variable OPENID_CONNECT_DISCOVERY_URL rejected: %w", err)
 			}
 		}
 		if o.Scopes == nil {
@@ -64,7 +64,7 @@ func WithDefaultOptions() Option {
 				oidc.ScopeOpenID,
 				"profile",
 				"email",
-			); err != nil {
+			)(o); err != nil {
 				return err
 			}
 		}
@@ -115,7 +115,7 @@ func WithDiscoveryURL(URL string) Option {
 			// The well-known URL part is automatically appended by the CoreOS
 			// Open ID provider. It should be removed for compatibility.
 			// https://github.com/coreos/go-oidc/blob/v3/oidc/oidc.go#L202
-			URL = strings.TrimSuffix("/.well-known/openid-configuration")
+			URL = strings.TrimSuffix(URL, "/.well-known/openid-configuration")
 		}
 		o.DiscoveryURL = URL
 		return nil
@@ -127,7 +127,7 @@ func WithScopes(scopes ...string) Option {
 		if o.Scopes != nil {
 			return errors.New("scopes are already set")
 		}
-		if len(o.Scopes) == 0 {
+		if len(scopes) == 0 {
 			return errors.New("provide at least one scope")
 		}
 		o.Scopes = scopes
@@ -148,15 +148,15 @@ func WithSessionAdapter(adapter SessionAdapter) Option {
 	}
 }
 
-func WithRedirectURL(URL string) Option {
+func WithCallbackURL(URL string) Option {
 	return func(o *options) error {
-		if o.RedirectURL != "" {
+		if o.CallbackURL != "" {
 			return errors.New("redirect URL is already set")
 		}
 		if URL == "" {
 			return errors.New("cannot use an empty redirect URL")
 		}
-		o.RedirectURL = URL
+		o.CallbackURL = URL
 		return nil
 	}
 }

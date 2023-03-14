@@ -21,7 +21,7 @@ func New(withOptions ...Option) (begin, callback oakhttp.Handler, err error) {
 		withOptions,
 		WithDefaultOptions(),
 		func(o *options) error { //validate
-			if o.RedirectURL == "" {
+			if o.CallbackURL == "" {
 				return errors.New("redirect URL is required")
 			}
 			if o.SessionAdapter == nil {
@@ -44,17 +44,20 @@ func New(withOptions ...Option) (begin, callback oakhttp.Handler, err error) {
 		ClientID:     o.ClientID,
 		ClientSecret: o.ClientSecret,
 		Endpoint:     provider.Endpoint(),
-		RedirectURL:  o.RedirectURL,
+		RedirectURL:  o.CallbackURL,
 		Scopes:       o.Scopes,
 	}
 
+	// re-initialize some variables, so &options can be garba-collected
+	tokenFactory := o.TokenFactory
+	csrfCookieName := o.CSRFCookieName
 	return func(w http.ResponseWriter, r *http.Request) error {
-			CSRFToken, err := o.TokenFactory()
+			CSRFToken, err := tokenFactory()
 			if err != nil {
 				return fmt.Errorf("cannot generate a CSRF token: %w", err)
 			}
 			http.SetCookie(w, &http.Cookie{
-				Name:     o.CookieName,
+				Name:     csrfCookieName,
 				Value:    CSRFToken,
 				MaxAge:   int((time.Minute * 5).Seconds()),
 				Secure:   r.TLS != nil,
@@ -64,7 +67,7 @@ func New(withOptions ...Option) (begin, callback oakhttp.Handler, err error) {
 			http.Redirect(w, r, oauth.AuthCodeURL(CSRFToken), http.StatusFound)
 			return nil
 		}, func(w http.ResponseWriter, r *http.Request) error {
-			CSRFToken, err := r.Cookie(o.CookieName)
+			CSRFToken, err := r.Cookie(csrfCookieName)
 			if err != nil {
 				return fmt.Errorf("CSRF state token cannot be recovered: %w", err)
 			}
@@ -72,6 +75,7 @@ func New(withOptions ...Option) (begin, callback oakhttp.Handler, err error) {
 			if q.Get("state") != CSRFToken.Value {
 				return errors.New("CSRF state token does not match the last set token")
 			}
+			// TODO: should also test q.Get("hd")? It is the name of the organization that issued the token. Should be probably enforced with a list?
 
 			ctx := r.Context()
 			oauth2Token, err := oauth.Exchange(ctx, q.Get("code"))
@@ -83,6 +87,11 @@ func New(withOptions ...Option) (begin, callback oakhttp.Handler, err error) {
 				return fmt.Errorf("could not retrieve user profile: %w", err)
 			}
 
-			return o.SessionAdapter(ctx, oauth2Token, userInfo)
+			finishURL, err := o.SessionAdapter(ctx, oauth2Token, userInfo)
+			if err != nil {
+				return fmt.Errorf("failed to start a session: %w", err)
+			}
+			http.Redirect(w, r, finishURL, http.StatusFound)
+			return nil
 		}, nil
 }
