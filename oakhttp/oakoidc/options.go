@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/coreos/go-oidc"
-	"github.com/oakacs/oaktoken"
+	"github.com/dkotik/oakacs/oaktoken"
 	"golang.org/x/oauth2"
 )
 
@@ -24,7 +24,7 @@ type options struct {
 	CliendID       string
 	ClientSecret   string
 	DiscoveryURL   string
-	CookieName     string
+	CSRFCookieName string
 	Scopes         []string
 	RedirectURL    string
 }
@@ -65,6 +65,11 @@ func WithDefaultOptions() Option {
 				"profile",
 				"email",
 			); err != nil {
+				return err
+			}
+		}
+		if o.CSRFCookieName == "" {
+			if err = WithCSRFCookieName("oidc-csrf-state")(o); err != nil {
 				return err
 			}
 		}
@@ -152,6 +157,19 @@ func WithRedirectURL(URL string) Option {
 			return errors.New("cannot use an empty redirect URL")
 		}
 		o.RedirectURL = URL
+		return nil
+	}
+}
+
+func WithCSRFCookieName(name string) Option {
+	return func(o *options) error {
+		if o.CSRFCookieName != "" {
+			return errors.New("CSRF cookie name is already set")
+		}
+		if name == "" {
+			return errors.New("cannot use an empty CSRF cookie name")
+		}
+		o.CSRFCookieName = name
 		return nil
 	}
 }

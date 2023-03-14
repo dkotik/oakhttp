@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/coreos/go-oidc v2.2.1+incompatible // indirect
+	github.com/dkotik/oakacs v0.0.0-20230313192629-dca2948824d1 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/pquerna/cachecontrol v0.1.0 // indirect
 	golang.org/x/crypto v0.7.0 // indirect
