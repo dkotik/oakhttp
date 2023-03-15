@@ -6,12 +6,12 @@ import (
 	"net/http"
 )
 
-func DefaultErrorHandler(h Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func DefaultErrorHandler(h Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		if err := h(w, r); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-	})
+	}
 }
 
 // var (

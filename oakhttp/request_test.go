@@ -26,15 +26,15 @@ var testAdaptor = func() *DomainAdaptor {
 
 func TestRequestAdaptor(t *testing.T) {
 	w := httptest.NewRecorder()
-	err := AdaptRequest(
+	AdaptRequest(
 		testAdaptor,
 		func(ctx context.Context, r *testRequest) error {
 			if r.Body != "test body" {
-				return fmt.Errorf("test body does not match: %s", r.Body)
+				t.Fatal("request failed", fmt.Errorf("test body does not match: %s", r.Body))
 			}
 			return nil
 		},
-	)(
+	).ServeHTTP(
 		w,
 		httptest.NewRequest(
 			http.MethodPost,
@@ -42,25 +42,22 @@ func TestRequestAdaptor(t *testing.T) {
 			bytes.NewReader([]byte(`{"Body":"test body"}`)),
 		),
 	)
-	if err != nil {
-		t.Fatal("request failed", err)
-	}
 }
 
 func TestCustomRequestAdaptor(t *testing.T) {
 	w := httptest.NewRecorder()
-	err := AdaptCustomRequest(
+	AdaptCustomRequest(
 		testAdaptor,
 		func(r *http.Request) (string, error) {
 			return r.URL.Path, nil
 		},
 		func(ctx context.Context, p string) error {
 			if p != "/path" {
-				return fmt.Errorf("test path does not match: %s", p)
+				t.Fatal(fmt.Errorf("test path does not match: %s", p))
 			}
 			return nil
 		},
-	)(
+	).ServeHTTP(
 		w,
 		httptest.NewRequest(
 			http.MethodPost,
@@ -68,7 +65,4 @@ func TestCustomRequestAdaptor(t *testing.T) {
 			bytes.NewReader([]byte(`{"Body":"test body"}`)),
 		),
 	)
-	if err != nil {
-		t.Fatal("request failed", err)
-	}
 }

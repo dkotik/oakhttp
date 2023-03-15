@@ -9,12 +9,12 @@ import (
 )
 
 type options struct {
-	readLimit          int64
-	encoderContentType string
-	encoderFactory     func(io.Writer) Encoder
-	decoderFactory     func(io.Reader) Decoder
-	errorHandler       func(Handler) http.Handler
-	middleware         []Middleware
+	readLimit                  int64
+	encoderContentType         string
+	encoderFactory             func(io.Writer) Encoder
+	decoderFactory             func(io.Reader) Decoder
+	errorHandler               func(Handler) http.HandlerFunc
+	middlewareFromInnerToOuter []Middleware
 }
 
 type Option func(*options) error
@@ -98,7 +98,7 @@ func WithEncoderDecoder(
 	}
 }
 
-func WithErrorHandler(h func(Handler) http.Handler) Option {
+func WithErrorHandler(h func(Handler) http.HandlerFunc) Option {
 	return func(o *options) error {
 		if o.errorHandler != nil {
 			return errors.New("error handler is already set")

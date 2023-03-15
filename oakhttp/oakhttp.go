@@ -29,12 +29,12 @@ type ValidatableNormalizable[T comparable] interface {
 }
 
 type DomainAdaptor struct {
-	readLimit          int64
-	encoderContentType string
-	encoderFactory     func(io.Writer) Encoder
-	decoderFactory     func(io.Reader) Decoder
-	errorHandler       func(Handler) http.Handler
-	middleware         []Middleware
+	readLimit                  int64
+	encoderContentType         string
+	encoderFactory             func(io.Writer) Encoder
+	decoderFactory             func(io.Reader) Decoder
+	errorHandler               func(Handler) http.HandlerFunc
+	middlewareFromInnerToOuter []Middleware
 }
 
 func New(withOptions ...Option) (*DomainAdaptor, error) {
@@ -63,18 +63,21 @@ func New(withOptions ...Option) (*DomainAdaptor, error) {
 	}
 
 	return &DomainAdaptor{
-		readLimit:          o.readLimit,
-		encoderContentType: o.encoderContentType,
-		encoderFactory:     o.encoderFactory,
-		decoderFactory:     o.decoderFactory,
-		errorHandler:       o.errorHandler,
-		middleware:         o.middleware,
+		readLimit:                  o.readLimit,
+		encoderContentType:         o.encoderContentType,
+		encoderFactory:             o.encoderFactory,
+		decoderFactory:             o.decoderFactory,
+		errorHandler:               o.errorHandler,
+		middlewareFromInnerToOuter: o.middlewareFromInnerToOuter,
 	}, nil
 }
 
-func (d *DomainAdaptor) ApplyMiddleware(h Handler) Handler {
-	for _, middleware := range d.middleware {
+func (d *DomainAdaptor) ApplyMiddleware(h Handler, more ...Middleware) http.HandlerFunc {
+	for _, middleware := range append(
+		more,
+		d.middlewareFromInnerToOuter...,
+	) {
 		h = middleware(h)
 	}
-	return h
+	return d.errorHandler(h)
 }

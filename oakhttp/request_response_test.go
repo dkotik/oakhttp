@@ -17,17 +17,17 @@ type testResponse struct {
 
 func TestRequestResponseAdaptor(t *testing.T) {
 	w := httptest.NewRecorder()
-	err := AdaptRequestResponse(
+	AdaptRequestResponse(
 		testAdaptor,
 		func(ctx context.Context, r *testRequest) (*testResponse, error) {
 			if r.Body != "test body" {
-				return nil, fmt.Errorf("test body does not match: %s", r.Body)
+				t.Fatal("request failed", fmt.Errorf("test body does not match: %s", r.Body))
 			}
 			return &testResponse{
 				Body: r.Body + " response",
 			}, nil
 		},
-	)(
+	).ServeHTTP(
 		w,
 		httptest.NewRequest(
 			http.MethodPost,
@@ -35,9 +35,6 @@ func TestRequestResponseAdaptor(t *testing.T) {
 			bytes.NewReader([]byte(`{"Body":"test body"}`)),
 		),
 	)
-	if err != nil {
-		t.Fatal("request failed", err)
-	}
 
 	res := w.Result()
 	defer res.Body.Close()

@@ -14,7 +14,8 @@ func AdaptRequestResponse[
 ](
 	usingDomainAdaptor *DomainAdaptor,
 	domainRequestHandler func(context.Context, R) (P, error),
-) Handler {
+	middleware ...Middleware,
+) http.Handler {
 	return usingDomainAdaptor.ApplyMiddleware(
 		func(w http.ResponseWriter, r *http.Request) error {
 			var request R
@@ -59,6 +60,7 @@ func AdaptRequestResponse[
 			}
 			return nil
 		},
+		middleware...,
 	)
 }
 
@@ -66,7 +68,8 @@ func AdaptCustomRequestResponse[T, P comparable](
 	usingDomainAdaptor *DomainAdaptor,
 	requestDecoderValidatorNormalizer func(*http.Request) (T, error),
 	domainRequestHandler func(context.Context, T) (P, error),
-) Handler {
+	middleware ...Middleware,
+) http.Handler {
 	return usingDomainAdaptor.ApplyMiddleware(
 		func(w http.ResponseWriter, r *http.Request) error {
 			request, err := requestDecoderValidatorNormalizer(r)
@@ -93,5 +96,6 @@ func AdaptCustomRequestResponse[T, P comparable](
 			}
 			return nil
 		},
+		middleware...,
 	)
 }

@@ -10,7 +10,8 @@ import (
 func AdaptRequest[T comparable, R ValidatableNormalizable[T]](
 	usingDomainAdaptor *DomainAdaptor,
 	domainRequestHandler func(context.Context, R) error,
-) Handler {
+	middleware ...Middleware,
+) http.Handler {
 	return usingDomainAdaptor.ApplyMiddleware(
 		func(w http.ResponseWriter, r *http.Request) error {
 			var request R
@@ -41,14 +42,15 @@ func AdaptRequest[T comparable, R ValidatableNormalizable[T]](
 
 			return domainRequestHandler(r.Context(), request)
 		},
-	)
+		middleware...)
 }
 
 func AdaptCustomRequest[T comparable](
 	usingDomainAdaptor *DomainAdaptor,
 	requestDecoderValidatorNormalizer func(*http.Request) (T, error),
 	domainRequestHandler func(context.Context, T) error,
-) Handler {
+	middleware ...Middleware,
+) http.Handler {
 	return usingDomainAdaptor.ApplyMiddleware(
 		func(w http.ResponseWriter, r *http.Request) error {
 			request, err := requestDecoderValidatorNormalizer(r)
@@ -61,5 +63,6 @@ func AdaptCustomRequest[T comparable](
 			}
 			return domainRequestHandler(r.Context(), request)
 		},
+		middleware...,
 	)
 }
