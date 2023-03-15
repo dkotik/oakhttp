@@ -1,5 +1,11 @@
 /*
 Package oakoidc allows logging in using Open ID Connect protocol extension over OAuth2.
+
+Where to get credentials?
+
+- Google:
+  - <https://console.cloud.google.com/apis/credentials>
+  - OPENID_CONNECT_DISCOVERY_URL=https://accounts.google.com
 */
 package oakoidc
 

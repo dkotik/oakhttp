@@ -6,6 +6,14 @@ import (
 	"net/http"
 )
 
+func DefaultErrorHandler(h Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := h(w, r); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	})
+}
+
 // var (
 // // not needed, just print
 // 	ErrNotFound = errors.New("requested resource was not found")
