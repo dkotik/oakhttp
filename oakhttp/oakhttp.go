@@ -10,22 +10,12 @@ import (
 	"net/http"
 )
 
-type Handler func(w http.ResponseWriter, r *http.Request) error
-
-type Middleware func(Handler) Handler
-
 type Encoder interface {
 	Encode(any) error
 }
 
 type Decoder interface {
 	Decode(any) error
-}
-
-type ValidatableNormalizable[T comparable] interface {
-	*T
-	Validate() error
-	Normalize() error
 }
 
 type DomainAdaptor struct {
@@ -72,6 +62,31 @@ func New(withOptions ...Option) (*DomainAdaptor, error) {
 	}, nil
 }
 
+func (d *DomainAdaptor) ReadRequest(
+	request any,
+	w http.ResponseWriter,
+	r *http.Request,
+) (err error) {
+	defer r.Body.Close()
+	reader := http.MaxBytesReader(w, r.Body, d.readLimit)
+	defer reader.Close()
+
+	err = d.decoderFactory(reader).Decode(request)
+	if err != nil {
+		return fmt.Errorf("decoder failed: %w", err)
+	}
+	return nil
+}
+
+func (d *DomainAdaptor) WriteResponse(w http.ResponseWriter, r any) (err error) {
+	w.Header().Set("Content-Type", d.encoderContentType)
+	err = d.encoderFactory(w).Encode(r)
+	if err != nil {
+		return fmt.Errorf("encoder failed: %w", err)
+	}
+	return nil
+}
+
 func (d *DomainAdaptor) ApplyMiddleware(h Handler, more ...Middleware) http.HandlerFunc {
 	for _, middleware := range append(
 		more,
@@ -79,5 +94,5 @@ func (d *DomainAdaptor) ApplyMiddleware(h Handler, more ...Middleware) http.Hand
 	) {
 		h = middleware(h)
 	}
-	return d.errorHandler(h)
+	return d.errorOrPanicHandler(h)
 }

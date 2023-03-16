@@ -42,6 +42,8 @@ const (
 )
 
 // An Intent is the desire of a role to carry out a given [Action] on a resource.
+//
+// TODO: Intent should be replaced with an interface. Predicates should be run using type assertions instead of the awkward map[string]Predicate construct. This will greatly simplify the API.
 type Intent struct {
 	Action       Action
 	ResourcePath ResourcePath
@@ -82,6 +84,10 @@ func (a Action) In(set ...Action) bool {
 func PredicateAny(ps ...Predicate) Predicate {
 	return func(ctx context.Context, desiredValues ...string) (ok bool, err error) {
 		for _, p := range ps {
+			// check if context is cancelled, cost: mutex operation
+			if err = ctx.Err(); err != nil {
+				return false, err
+			}
 			ok, err = p(ctx, desiredValues...)
 			if err != nil {
 				return false, err
@@ -98,6 +104,10 @@ func PredicateAny(ps ...Predicate) Predicate {
 func PredicateEach(ps ...Predicate) Predicate {
 	return func(ctx context.Context, desiredValues ...string) (ok bool, err error) {
 		for _, p := range ps {
+			// check if context is cancelled, cost: mutex operation
+			if err = ctx.Err(); err != nil {
+				return false, err
+			}
 			ok, err = p(ctx, desiredValues...)
 			if err != nil {
 				return false, err

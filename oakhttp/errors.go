@@ -3,11 +3,57 @@ package oakhttp
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+
+	"golang.org/x/exp/slog"
 )
+
+func (d *DomainAdaptor) errorOrPanicHandler(h Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var err error
+		defer func() {
+			if r := recover(); r != nil {
+				err = fmt.Errorf("critical failure: %v", r)
+				_ = d.WriteErrors(w, err)
+				slog.Error("an HTTP request panicked", err)
+			}
+		}()
+
+		if err = h(w, r); err != nil {
+			// unwrappable, ok := err.Unwrap().(interface{ Unwrap() []error })
+			// if ok {
+			//   d.WriteErrors(unwrappable.Unwrap()...)
+			//   return
+			// }
+			_ = d.WriteErrors(w, err)
+		}
+	}
+}
+
+func (d *DomainAdaptor) WriteErrors(w http.ResponseWriter, display ...error) (err error) {
+	w.Header().Set("Content-Type", d.encoderContentType)
+	var httpError Error
+	if errors.As(err, &httpError) {
+		w.WriteHeader(httpError.HTTPStatusCode())
+	} else {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+
+	err = d.encoderFactory(w).Encode(map[string][]error{
+		"Errors": display,
+	})
+	if err != nil {
+		return fmt.Errorf("encoder failed: %w", err)
+	}
+	return nil
+}
 
 func DefaultErrorHandler(h Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// if r.Header().Get("Content-Type") == d.encoderContentType {
+		//   TODO: encode the error map here after Unwrap() []error
+		// }
 		if err := h(w, r); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
@@ -46,32 +92,6 @@ func (e *NotFoundError) HTTPStatusCode() int {
 
 func (e *NotFoundError) Error() string {
 	return "resource \"" + e.resource + "\" was not found"
-}
-
-type ValidationError struct {
-	errors []error
-}
-
-func NewValidationError(fieldError ...error) *ValidationError {
-	return &ValidationError{
-		errors: fieldError,
-	}
-}
-
-func (e *ValidationError) MarshallJSON() []byte {
-	return []byte(`[]`)
-}
-
-func (e *ValidationError) Error() string {
-	return "validation failed"
-}
-
-func (e *ValidationError) Unwrap() []error {
-	return e.errors
-}
-
-func (e *ValidationError) HTTPStatusCode() int {
-	return http.StatusUnprocessableEntity
 }
 
 // type EncodingError struct{} // not needed, just print

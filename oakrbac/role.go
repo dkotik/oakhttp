@@ -23,6 +23,11 @@ func WithNewRole(name string, ps ...Policy) Option {
 			var err error
 			var policyGrantingAccess Policy
 			for _, policyGrantingAccess = range ps {
+				// // check if context is cancelled, cost: mutex operation
+				// if err = ctx.Err(); err != nil {
+				// 	return nil, err
+				// }
+
 				err = policyGrantingAccess(ctx, i)
 				if err == nil {
 					continue // policy did not match

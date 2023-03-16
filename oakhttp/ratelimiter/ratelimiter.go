@@ -6,6 +6,20 @@ import (
 	"golang.org/x/exp/slog"
 )
 
+type Error string
+
+func (e Error) Error() string {
+	return string(e)
+}
+
+func (e Error) HTTPStatusCode() int {
+	return http.StatusTooManyRequests
+}
+
+const (
+	ErrTooManyRequests Error = "too many incoming requests"
+)
+
 func Must(h http.Handler, err error) http.Handler {
 	if err != nil {
 		panic(err)

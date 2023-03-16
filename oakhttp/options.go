@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/dkotik/oakacs/oakhttp/ratelimiter"
 )
 
 type options struct {
@@ -15,6 +17,7 @@ type options struct {
 	decoderFactory             func(io.Reader) Decoder
 	errorHandler               func(Handler) http.HandlerFunc
 	middlewareFromInnerToOuter []Middleware
+	rateLimiterOptions         []ratelimiter.Option
 }
 
 type Option func(*options) error
@@ -107,6 +110,21 @@ func WithErrorHandler(h func(Handler) http.HandlerFunc) Option {
 			return errors.New("cannot use a <nil> error handler")
 		}
 		o.errorHandler = h
+		return nil
+	}
+}
+
+func WithRateLimiterOptions(withOptions ...ratelimiter.Option) Option {
+	return func(o *options) error {
+		if o.rateLimiterOptions != nil {
+			return errors.New("rate limiter options are already set")
+		}
+		for _, option := range withOptions {
+			if option == nil {
+				return errors.New("cannot use a <nil> rate limiter option")
+			}
+		}
+		o.rateLimiterOptions = withOptions
 		return nil
 	}
 }

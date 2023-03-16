@@ -39,6 +39,7 @@ func WithDefaultOptions() Option {
 			}
 		}()
 		if o.TokenFactory == nil {
+			// TODO: replace with oaktoken.NewURLToken(36) after next release tag.
 			o.TokenFactory, err = oaktoken.New()
 			if err != nil {
 				return fmt.Errorf("cannot create a token factory: %w", err)
