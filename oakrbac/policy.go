@@ -15,7 +15,10 @@ type (
 	// Policy returns [Allow] sentinel error if the session is permitted to interact with the context.
 	// Policy returns [Deny] sentinel error to interrupt the matching loop.
 	// Policy returns `nil` if it did not match, but another policy might match.
-	Policy func(context.Context, *Intent) error
+	Policy func(context.Context, Intent) error
+
+	// Middleware wraps a [Policy] to extend its functionality.
+	Middleware func(Policy) Policy
 )
 
 // Name returns the name of the [Policy] function by using reflection.
@@ -81,7 +84,7 @@ func (p Policy) LogValue() slog.Value {
 
 // PolicyEither combines a [Policy] list into one that return on first [Allow] or error.
 func PolicyEither(ps ...Policy) Policy {
-	return func(ctx context.Context, i *Intent) (err error) {
+	return func(ctx context.Context, i Intent) (err error) {
 		for _, p := range ps {
 			if err = p(ctx, i); err != nil {
 				return err
@@ -93,7 +96,7 @@ func PolicyEither(ps ...Policy) Policy {
 
 // PolicyEach combines a [Policy] list into one that succeeds only if each policy returns [Allow]. An empty list never matches.
 func PolicyEach(ps ...Policy) Policy {
-	return func(ctx context.Context, i *Intent) (err error) {
+	return func(ctx context.Context, i Intent) (err error) {
 		if len(ps) == 0 {
 			return nil
 		}
@@ -107,21 +110,21 @@ func PolicyEach(ps ...Policy) Policy {
 }
 
 // AllowEverything authorizes any action on any resource. Use cautiously.
-func AllowEverything(_ context.Context, _ *Intent) error {
+func AllowEverything(_ context.Context, _ Intent) error {
 	return Allow
 }
 
 // DenyEverything denies authorization for any action on any resource.
-func DenyEverything(_ context.Context, _ *Intent) error {
+func DenyEverything(_ context.Context, _ Intent) error {
 	return Deny
 }
 
 // AllowActionsForResourcesMatching authorizes any action from the provided list to any resource matching provided masks. This a helper method for debugging. Prefer to use generated policies.
 func AllowActionsForResourcesMatching(actions []Action, resourceMasks [][]string) Policy {
-	return func(ctx context.Context, i *Intent) error {
+	return func(ctx context.Context, i Intent) error {
 		for _, resourceMask := range resourceMasks {
-			if i.ResourcePath.Match(resourceMask...) {
-				if i.Action.In(actions...) {
+			if i.ResourcePath().Match(resourceMask...) {
+				if i.Action().In(actions...) {
 					return Allow
 				}
 			}

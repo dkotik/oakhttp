@@ -2,26 +2,70 @@ package oakrbac
 
 import (
 	"context"
-	"errors"
 	"net/http"
 )
 
 type contextKey struct{}
 
-// ContextWithRole injects the chosen role into [context.Context]. Panics if the role was not registered.
-func (r RBAC) ContextWithRole(parent context.Context, role string) context.Context {
-	return context.WithValue(parent, contextKey{}, r(role))
+type contextRole struct {
+	RBAC     *RBAC
+	RoleName string
 }
 
-// Authorize recovers the role associated with a given context and matches the [Intent]. It returns the [Policy] that granted authorization. The second return value is [AuthorizationError] in place of a generic error.
-func Authorize(ctx context.Context, i *Intent) (policyGrantingAccess Policy, err *AuthorizationError) {
-	role, _ := ctx.Value(contextKey{}).(Role)
-	if role == nil {
-		return nil, &AuthorizationError{
-			Cause: errors.New("role context not found"),
-		}
+// ContextWithRole injects the chosen role into [context.Context]. Panics if the role was not registered.
+func (r *RBAC) ContextWithRole(
+	parent context.Context,
+	roleName string,
+) context.Context {
+	return context.WithValue(parent, contextKey{}, &contextRole{
+		RBAC:     r,
+		RoleName: roleName,
+	})
+}
+
+func RoleFromContext(ctx context.Context) (Role, error) {
+	contextRole, _ := ctx.Value(contextKey{}).(*contextRole)
+	if contextRole == nil {
+		return nil, ErrInvalidContext
 	}
-	return role(ctx, i)
+	return contextRole.RBAC.GetRole(ctx, contextRole.RoleName)
+}
+
+// Authorize recovers the role associated with a given context and matches the [Intent].
+func Authorize(ctx context.Context, i Intent) error {
+	contextRole, _ := ctx.Value(contextKey{}).(*contextRole)
+	if contextRole == nil {
+		return ErrInvalidContext
+	}
+	role, err := contextRole.RBAC.GetRole(ctx, contextRole.RoleName)
+	if err != nil {
+		return err
+	}
+	return contextRole.RBAC.Authorize(ctx, role, i)
+}
+
+func AuthorizeEvery(ctx context.Context, intents ...Intent) error {
+	contextRole, _ := ctx.Value(contextKey{}).(*contextRole)
+	if contextRole == nil {
+		return ErrInvalidContext
+	}
+	role, err := contextRole.RBAC.GetRole(ctx, contextRole.RoleName)
+	if err != nil {
+		return err
+	}
+	return contextRole.RBAC.AuthorizeEvery(ctx, role, intents...)
+}
+
+func AuthorizeAny(ctx context.Context, intents ...Intent) error {
+	contextRole, _ := ctx.Value(contextKey{}).(*contextRole)
+	if contextRole == nil {
+		return ErrInvalidContext
+	}
+	role, err := contextRole.RBAC.GetRole(ctx, contextRole.RoleName)
+	if err != nil {
+		return err
+	}
+	return contextRole.RBAC.AuthorizeAny(ctx, role, intents...)
 }
 
 // ContextMiddleWare is an example of an HTTP middleware that injects a role into a [context.Context], which can later be recovered using [ContextMount] or [ContextAuthorize] or [ContextAuthorizeEach]. The role here is taken from the HTTP header, but in production it should be taken from a session or token, like JWT, value.

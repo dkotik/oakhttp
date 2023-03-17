@@ -53,50 +53,166 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+
+	"golang.org/x/exp/slog"
 )
 
-type (
-	// RBAC is a simple Role Based Access Control system.
-	RBAC func(string) Role
+// RBAC is a simple Role Based Access Control system.
+type RBAC struct {
+	roles     []Role
+	listeners []Listener
+}
 
-	// Option customizes the [RBAC] constructor [New].
-	Option func(map[string]Role) error
-)
+func (r *RBAC) GetRole(ctx context.Context, name string) (Role, error) {
+	for _, r := range r.roles {
+		if name == r.Name() {
+			return r, nil
+		}
+	}
+	r.Dispatch(
+		ctx,
+		NewEvent(
+			EventTypeError,
+			nil,
+			nil,
+			nil,
+			ErrRoleNotFound,
+		),
+	)
+	return nil, ErrRoleNotFound
+}
+
+func (r *RBAC) Dispatch(ctx context.Context, e *Event) {
+	for _, listener := range r.listeners {
+		listener.Listen(ctx, e)
+	}
+}
+
+// Authorize matches the named [Role] against an [Intent]. It returns the [Policy] that granted authorization. The second return value is [AuthorizationError] in place of a generic error.
+func (r *RBAC) Authorize(ctx context.Context, role Role, i Intent) error {
+	eventType, policy, err := role.Authorize(ctx, i)
+	r.Dispatch(
+		ctx,
+		NewEvent(
+			eventType,
+			role,
+			[]Intent{i},
+			[]Policy{policy},
+			err,
+		),
+	)
+	return err
+}
+
+func (r *RBAC) AuthorizeEvery(ctx context.Context, role Role, intents ...Intent) error {
+	policies := make([]Policy, len(intents))
+	for i, intent := range intents {
+		eventType, policy, err := role.Authorize(ctx, intent)
+		if err != nil {
+			r.Dispatch(
+				ctx,
+				NewEvent(
+					eventType,
+					role,
+					intents,
+					[]Policy{policy},
+					err,
+				),
+			)
+			return err
+		}
+		policies[i] = policy
+	}
+	r.Dispatch(
+		ctx,
+		NewEvent(
+			EventTypeAuthorizationGranted,
+			role,
+			intents,
+			policies,
+			nil,
+		),
+	)
+	return nil
+}
+
+func (r *RBAC) AuthorizeAny(ctx context.Context, role Role, intents ...Intent) error {
+	for _, intent := range intents {
+		eventType, policy, err := role.Authorize(ctx, intent)
+		switch eventType {
+		case EventTypeAuthorizationGranted:
+			r.Dispatch(
+				ctx,
+				NewEvent(EventTypeAuthorizationGranted,
+					role,
+					intents,
+					[]Policy{policy},
+					nil,
+				),
+			)
+			return nil
+		case EventTypeError:
+			r.Dispatch(
+				ctx,
+				NewEvent(
+					eventType,
+					role,
+					intents,
+					[]Policy{policy},
+					err,
+				),
+			)
+			return err
+		}
+	}
+	r.Dispatch(
+		ctx,
+		NewEvent(
+			EventTypeAuthorizationDenied,
+			role,
+			intents,
+			nil,
+			Deny,
+		),
+	)
+	return nil
+}
+
+// New builds an [RBAC] using provided [Option] set.
+func New(withOptions ...Option) (rbac *RBAC, err error) {
+	o := &options{}
+	for _, option := range append(
+		withOptions,
+		func(o *options) (err error) { // validate
+			if len(o.roles) == 0 {
+				return errors.New("at least one role is required")
+			}
+			if len(o.listeners) == 0 {
+				if err = WithSlogLogger(
+					slog.New(slog.NewTextHandler(os.Stderr)),
+					slog.LevelInfo,
+				)(o); err != nil {
+					return fmt.Errorf("could not setup default logger: %w", err)
+				}
+			}
+			return nil
+		},
+	) {
+		if err = option(o); err != nil {
+			return nil, fmt.Errorf("cannot create OakRBAC: %w", err)
+		}
+	}
+	return &RBAC{
+		listeners: o.listeners,
+		roles:     o.roles,
+	}, nil
+}
 
 // Must panics if an error is associated with [RBAC] constructor. Use together with [New].
-func Must(r RBAC, err error) RBAC {
+func Must(r *RBAC, err error) *RBAC {
 	if err != nil {
 		panic(err)
 	}
 	return r
-}
-
-// New builds an [RBAC] using provided [Option] set.
-func New(withOptions ...Option) (rbac RBAC, err error) {
-	roles := make(map[string]Role)
-	for _, option := range append(withOptions, func(roles map[string]Role) error {
-		if len(roles) == 0 {
-			return errors.New("provide at least one role")
-		}
-		return nil
-	}) {
-		if err = option(roles); err != nil {
-			return nil, fmt.Errorf("cannot create OakRBAC: %w", err)
-		}
-	}
-	return func(roleName string) (role Role) {
-		role, _ = roles[roleName]
-		return
-	}, nil
-}
-
-// Authorize matches the named [Role] against an [Intent]. It returns the [Policy] that granted authorization. The second return value is [AuthorizationError] in place of a generic error.
-func (r RBAC) Authorize(ctx context.Context, roleName string, i *Intent) (policyGrantingAccess Policy, err *AuthorizationError) {
-	role := r(roleName)
-	if role == nil {
-		return nil, &AuthorizationError{
-			Cause: errors.New("role not found: " + roleName),
-		}
-	}
-	return role(ctx, i)
 }
