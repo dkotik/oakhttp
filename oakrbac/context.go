@@ -31,8 +31,8 @@ func RoleFromContext(ctx context.Context) (Role, error) {
 	return contextRole.RBAC.GetRole(contextRole.RoleName)
 }
 
-// Authorize recovers the role associated with a given context and matches the [Intent].
-func Authorize(ctx context.Context, i Intent) error {
+// Authorize recovers the role associated with a given context and matches the [Intention].
+func Authorize(ctx context.Context, i Intention) error {
 	contextRole, _ := ctx.Value(contextKey{}).(*contextRole)
 	if contextRole == nil {
 		return ErrInvalidContext
@@ -40,7 +40,7 @@ func Authorize(ctx context.Context, i Intent) error {
 	return contextRole.RBAC.Authorize(ctx, contextRole.RoleName, i)
 }
 
-func AuthorizeEach(ctx context.Context, intents ...Intent) error {
+func AuthorizeEach(ctx context.Context, intents ...Intention) error {
 	contextRole, _ := ctx.Value(contextKey{}).(*contextRole)
 	if contextRole == nil {
 		return ErrInvalidContext
@@ -48,7 +48,7 @@ func AuthorizeEach(ctx context.Context, intents ...Intent) error {
 	return contextRole.RBAC.AuthorizeEach(ctx, contextRole.RoleName, intents...)
 }
 
-func AuthorizeAny(ctx context.Context, intents ...Intent) error {
+func AuthorizeAny(ctx context.Context, intents ...Intention) error {
 	contextRole, _ := ctx.Value(contextKey{}).(*contextRole)
 	if contextRole == nil {
 		return ErrInvalidContext

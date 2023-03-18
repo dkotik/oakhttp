@@ -1,7 +1,7 @@
 package oakrbac
 
 type (
-	// An Action specifies the verb of an [Intent]. OakRBAC comes with a set of most frequently occuring actions. Specify custom actions as constants.
+	// An Action specifies the verb of an [Intention]. OakRBAC comes with a set of most frequently occuring actions. Specify custom actions as constants.
 	Action string
 )
 

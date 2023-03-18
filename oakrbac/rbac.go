@@ -16,8 +16,8 @@ OakRBAC leans on [context.Context] as the main mechanism for passing access righ
 	// 2. Inject authorization context:
 	ctx := RBAC.ContextWithRole("administrator", context.TODO())
 
-	// 3. Authorize an action [Intent]:
-	matchedPolicy, err := oakrbac.Authorize(ctx, &oakrbac.Intent{
+	// 3. Authorize an action [Intention]:
+	matchedPolicy, err := oakrbac.Authorize(ctx, &oakrbac.Intention{
 		Action: oakrbac.ActionCreate,
 		ResourcePath: oakrbac.NewResourcePath(
 			"myService",
@@ -42,7 +42,7 @@ OakRBAC comes with only two default policies: [AllowEverything] and [DenyEveryth
 
 # Predicates
 
-An [Intent] can be created with a set of [Predicate] functions that allow a [Policy] to run code snippets against the resource to examine it during evaluation.
+An [Intention] can be created with a set of [Predicate] functions that allow a [Policy] to run code snippets against the resource to examine it during evaluation.
 
 Predicates enable writing incredibly powerful and performant access control policies.
 
@@ -73,8 +73,8 @@ func (r *RBAC) GetRole(name string) (Role, error) {
 	return nil, ErrRoleNotFound
 }
 
-// Authorize matches the named [Role] against an [Intent]. It returns the [Policy] that granted authorization. The second return value is [AuthorizationError] in place of a generic error.
-func (r *RBAC) Authorize(ctx context.Context, roleName string, i Intent) error {
+// Authorize matches the named [Role] against an [Intention]. It returns the [Policy] that granted authorization. The second return value is [AuthorizationError] in place of a generic error.
+func (r *RBAC) Authorize(ctx context.Context, roleName string, i Intention) error {
 	role, err := r.GetRole(roleName)
 	if err != nil {
 		r.AuthorizationFailed(ctx, i, nil, nil, err)
@@ -82,10 +82,10 @@ func (r *RBAC) Authorize(ctx context.Context, roleName string, i Intent) error {
 	}
 	policy, err := role.Authorize(ctx, i)
 	if errors.Is(err, Allow) {
-		r.AuthorizationGranted(ctx, []Intent{i}, []Policy{policy}, role)
+		r.AuthorizationGranted(ctx, []Intention{i}, []Policy{policy}, role)
 		return nil
 	} else if errors.Is(err, Deny) {
-		r.AuthorizationDenied(ctx, []Intent{i}, []Policy{policy}, role)
+		r.AuthorizationDenied(ctx, []Intention{i}, []Policy{policy}, role)
 		return err
 	}
 	r.AuthorizationFailed(ctx, i, policy, role, err)
@@ -95,7 +95,7 @@ func (r *RBAC) Authorize(ctx context.Context, roleName string, i Intent) error {
 	}
 }
 
-func (r *RBAC) AuthorizeEach(ctx context.Context, roleName string, intents ...Intent) (err error) {
+func (r *RBAC) AuthorizeEach(ctx context.Context, roleName string, intents ...Intention) (err error) {
 	if len(intents) == 0 {
 		err = errors.New("cannot authorize an empty list of intents")
 		r.AuthorizationFailed(ctx, nil, nil, nil, err)
@@ -126,7 +126,7 @@ func (r *RBAC) AuthorizeEach(ctx context.Context, roleName string, intents ...In
 	return nil
 }
 
-func (r *RBAC) AuthorizeAny(ctx context.Context, roleName string, intents ...Intent) error {
+func (r *RBAC) AuthorizeAny(ctx context.Context, roleName string, intents ...Intention) error {
 	role, err := r.GetRole(roleName)
 	if err != nil {
 		r.AuthorizationFailed(ctx, nil, nil, nil, err)

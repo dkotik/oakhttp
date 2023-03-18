@@ -6,38 +6,38 @@ import (
 	"golang.org/x/exp/slog"
 )
 
-// An Intent is the desire of a role to carry out a given [Action] on a resource.
-type Intent interface {
+// An Intention is the desire of a [Role] to carry out a given [Action] on a [ResourcePath].
+type Intention interface {
 	Action() Action
 	ResourcePath() ResourcePath
 	String() string // for caching
 }
 
-type basicIntent struct {
+type basicIntention struct {
 	action       Action
 	resourcePath ResourcePath
 }
 
-func NewIntent(action Action, resourcePath ResourcePath) Intent {
-	return &basicIntent{
+func NewIntention(action Action, resourcePath ResourcePath) Intention {
+	return &basicIntention{
 		action:       action,
 		resourcePath: resourcePath,
 	}
 }
 
-func (i *basicIntent) Action() Action {
+func (i *basicIntention) Action() Action {
 	return i.action
 }
 
-func (i *basicIntent) ResourcePath() ResourcePath {
+func (i *basicIntention) ResourcePath() ResourcePath {
 	return i.resourcePath
 }
 
-func (i *basicIntent) String() string {
+func (i *basicIntention) String() string {
 	return fmt.Sprintf("intending action %q on resource %q", i.action, i.resourcePath)
 }
 
-func (i *basicIntent) LogValue() slog.Value {
+func (i *basicIntention) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.String("action", string(i.action)),
 		slog.String("resource", i.resourcePath.String()),

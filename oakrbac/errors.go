@@ -9,9 +9,9 @@ import (
 
 var (
 	//revive:disable:error-naming
-	// Allow is a sentinel error that explicitly indicates that a [Policy] matched [Intent] and grants access.
+	// Allow is a sentinel error that explicitly indicates that a [Policy] matched [Intention] and grants access.
 	Allow = errors.New("authorization granted")
-	// Deny is a sentinel error that explicitly indicates that a [Policy] matched [Intent] and denies access.
+	// Deny is a sentinel error that explicitly indicates that a [Policy] matched [Intention] and denies access.
 	Deny = &denyError{}
 	//revive:enable:error-naming
 

@@ -4,10 +4,10 @@ import (
 	"context"
 )
 
-// A Role is an [Intent] authorization provider. It returns the [Policy] that granted authorization. The second return value is [AuthorizationError] in place of a generic error.
+// A Role is an [Intention] authorization provider. It returns the [Policy] that granted authorization. The second return value is [AuthorizationError] in place of a generic error.
 type Role interface {
 	Name() string
-	Authorize(context.Context, Intent) (Policy, error)
+	Authorize(context.Context, Intention) (Policy, error)
 }
 
 type basicRole struct {
@@ -19,7 +19,7 @@ func (r *basicRole) Name() string {
 	return r.name
 }
 
-func (r *basicRole) Authorize(ctx context.Context, i Intent) (policy Policy, err error) {
+func (r *basicRole) Authorize(ctx context.Context, i Intention) (policy Policy, err error) {
 	for _, policy = range r.policies {
 		if err = policy(ctx, i); err != nil {
 			if err == nil {
@@ -41,7 +41,7 @@ func (o *omnipotentRole) Name() string {
 	return o.name
 }
 
-func (o *omnipotentRole) Authorize(ctx context.Context, i Intent) (Policy, error) {
+func (o *omnipotentRole) Authorize(ctx context.Context, i Intention) (Policy, error) {
 	return AllowEverything, Allow
 }
 
@@ -53,6 +53,6 @@ func (o *impotentRole) Name() string {
 	return o.name
 }
 
-func (o *impotentRole) Authorize(ctx context.Context, i Intent) (Policy, error) {
+func (o *impotentRole) Authorize(ctx context.Context, i Intention) (Policy, error) {
 	return DenyEverything, Deny
 }

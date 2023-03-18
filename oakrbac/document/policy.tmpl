@@ -5,7 +5,7 @@ import (
 	"github.com/tigerperformanceinstitute/tprograms/oakacs"
 )
 
-func AllowOrDenyName(ctx context.Context, i *oakacs.Intent) (err error) {
+func AllowOrDenyName(ctx context.Context, i *oakacs.Intention) (err error) {
 
 	// exact match
 	if MatchResourcePath != i.ResourcePath {

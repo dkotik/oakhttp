@@ -26,7 +26,7 @@ type authorizationGrantLogger struct {
 
 func (s *authorizationGrantLogger) AuthorizationGranted(
 	ctx context.Context,
-	intents []Intent,
+	intents []Intention,
 	policies []Policy,
 	role Role,
 ) {
@@ -42,7 +42,7 @@ func (s *authorizationGrantLogger) AuthorizationGranted(
 
 func (s *authorizationGrantLogger) AuthorizationDenied(
 	ctx context.Context,
-	intents []Intent,
+	intents []Intention,
 	policies []Policy,
 	role Role,
 ) {
@@ -51,7 +51,7 @@ func (s *authorizationGrantLogger) AuthorizationDenied(
 
 func (s *authorizationGrantLogger) AuthorizationFailed(
 	ctx context.Context,
-	intents Intent,
+	intents Intention,
 	policies Policy,
 	role Role,
 	err error,
