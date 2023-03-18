@@ -64,119 +64,92 @@ type RBAC struct {
 	listeners []Listener
 }
 
-func (r *RBAC) GetRole(ctx context.Context, name string) (Role, error) {
+func (r *RBAC) GetRole(name string) (Role, error) {
 	for _, r := range r.roles {
 		if name == r.Name() {
 			return r, nil
 		}
 	}
-	r.Dispatch(
-		ctx,
-		NewEvent(
-			EventTypeError,
-			nil,
-			nil,
-			nil,
-			ErrRoleNotFound,
-		),
-	)
 	return nil, ErrRoleNotFound
 }
 
-func (r *RBAC) Dispatch(ctx context.Context, e *Event) {
-	for _, listener := range r.listeners {
-		listener.Listen(ctx, e)
+// Authorize matches the named [Role] against an [Intent]. It returns the [Policy] that granted authorization. The second return value is [AuthorizationError] in place of a generic error.
+func (r *RBAC) Authorize(ctx context.Context, roleName string, i Intent) error {
+	role, err := r.GetRole(roleName)
+	if err != nil {
+		r.AuthorizationFailed(ctx, i, nil, nil, err)
+		return &AuthorizationError{cause: err}
+	}
+	policy, err := role.Authorize(ctx, i)
+	if errors.Is(err, Allow) {
+		r.AuthorizationGranted(ctx, []Intent{i}, []Policy{policy}, role)
+		return nil
+	} else if errors.Is(err, Deny) {
+		r.AuthorizationDenied(ctx, []Intent{i}, []Policy{policy}, role)
+		return err
+	}
+	r.AuthorizationFailed(ctx, i, policy, role, err)
+	return &AuthorizationError{
+		policy: policy,
+		cause:  err,
 	}
 }
 
-// Authorize matches the named [Role] against an [Intent]. It returns the [Policy] that granted authorization. The second return value is [AuthorizationError] in place of a generic error.
-func (r *RBAC) Authorize(ctx context.Context, role Role, i Intent) error {
-	eventType, policy, err := role.Authorize(ctx, i)
-	r.Dispatch(
-		ctx,
-		NewEvent(
-			eventType,
-			role,
-			[]Intent{i},
-			[]Policy{policy},
-			err,
-		),
-	)
-	return err
-}
-
-func (r *RBAC) AuthorizeEvery(ctx context.Context, role Role, intents ...Intent) error {
+func (r *RBAC) AuthorizeEach(ctx context.Context, roleName string, intents ...Intent) (err error) {
+	if len(intents) == 0 {
+		err = errors.New("cannot authorize an empty list of intents")
+		r.AuthorizationFailed(ctx, nil, nil, nil, err)
+		return &AuthorizationError{cause: err}
+	}
+	role, err := r.GetRole(roleName)
+	if err != nil {
+		r.AuthorizationFailed(ctx, intents[0], nil, nil, err)
+		return &AuthorizationError{cause: err}
+	}
 	policies := make([]Policy, len(intents))
 	for i, intent := range intents {
-		eventType, policy, err := role.Authorize(ctx, intent)
-		if err != nil {
-			r.Dispatch(
-				ctx,
-				NewEvent(
-					eventType,
-					role,
-					intents,
-					[]Policy{policy},
-					err,
-				),
-			)
-			return err
+		policy, err := role.Authorize(ctx, intent)
+		if errors.Is(err, Allow) {
+			policies[i] = policy
+			continue
+		} else if errors.Is(err, Deny) {
+			r.AuthorizationDenied(ctx, intents, []Policy{policy}, role)
+			return Deny
 		}
-		policies[i] = policy
+		r.AuthorizationFailed(ctx, intent, policy, role, err)
+		return &AuthorizationError{
+			policy: policy,
+			cause:  err,
+		}
 	}
-	r.Dispatch(
-		ctx,
-		NewEvent(
-			EventTypeAuthorizationGranted,
-			role,
-			intents,
-			policies,
-			nil,
-		),
-	)
+	r.AuthorizationGranted(ctx, intents, policies, role)
 	return nil
 }
 
-func (r *RBAC) AuthorizeAny(ctx context.Context, role Role, intents ...Intent) error {
+func (r *RBAC) AuthorizeAny(ctx context.Context, roleName string, intents ...Intent) error {
+	role, err := r.GetRole(roleName)
+	if err != nil {
+		r.AuthorizationFailed(ctx, nil, nil, nil, err)
+		return &AuthorizationError{cause: err}
+	}
+	var policies []Policy
 	for _, intent := range intents {
-		eventType, policy, err := role.Authorize(ctx, intent)
-		switch eventType {
-		case EventTypeAuthorizationGranted:
-			r.Dispatch(
-				ctx,
-				NewEvent(EventTypeAuthorizationGranted,
-					role,
-					intents,
-					[]Policy{policy},
-					nil,
-				),
-			)
+		policy, err := role.Authorize(ctx, intent)
+		if errors.Is(err, Allow) {
+			r.AuthorizationGranted(ctx, intents, []Policy{policy}, role)
 			return nil
-		case EventTypeError:
-			r.Dispatch(
-				ctx,
-				NewEvent(
-					eventType,
-					role,
-					intents,
-					[]Policy{policy},
-					err,
-				),
-			)
-			return err
+		} else if errors.Is(err, Deny) {
+			policies = append(policies, policy)
+			continue
+		}
+		r.AuthorizationFailed(ctx, intent, policy, role, err)
+		return &AuthorizationError{
+			policy: policy,
+			cause:  err,
 		}
 	}
-	r.Dispatch(
-		ctx,
-		NewEvent(
-			EventTypeAuthorizationDenied,
-			role,
-			intents,
-			nil,
-			Deny,
-		),
-	)
-	return nil
+	r.AuthorizationDenied(ctx, intents, policies, role)
+	return Deny
 }
 
 // New builds an [RBAC] using provided [Option] set.

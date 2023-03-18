@@ -33,7 +33,6 @@ func WithCustomRole(r Role) Option {
 
 func WithRole(name string, ps ...Policy) Option {
 	return func(o *options) error {
-
 		if len(ps) == 0 {
 			return fmt.Errorf("role %q must incluse at least one policy", name)
 		}
@@ -47,6 +46,14 @@ func WithRole(name string, ps ...Policy) Option {
 			policies: ps,
 		})(o)
 	}
+}
+
+func WithOmnipotentRole(name string) Option {
+	return WithCustomRole(&omnipotentRole{name: name})
+}
+
+func WithImpotentRole(name string) Option {
+	return WithCustomRole(&impotentRole{name: name})
 }
 
 func WithListener(l Listener) Option {
