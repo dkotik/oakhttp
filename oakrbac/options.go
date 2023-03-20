@@ -3,14 +3,97 @@ package oakrbac
 import (
 	"errors"
 	"fmt"
+	"os"
+
+	"golang.org/x/exp/slog"
 )
 
 type options struct {
-	roles     []Role
-	listeners []Listener
+	roleRepository       RoleRepository
+	contextRoleExtractor ContextRoleExtractor
+	roles                []Role
+	listeners            []Listener
 }
 
 type Option func(*options) error
+
+func WithOptions(withOptions ...Option) Option {
+	return func(o *options) (err error) {
+		for _, option := range withOptions {
+			if err = option(o); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
+func WithDefaultOptions() Option {
+	return func(o *options) (err error) {
+		defer func() {
+			if err != nil {
+				err = fmt.Errorf("could not set a default option: %w", err)
+			}
+		}()
+
+		if o.roleRepository == nil {
+			if err = WithListRoleRepository()(o); err != nil {
+				return err
+			}
+		}
+
+		if o.contextRoleExtractor == nil {
+			if err = WithContextRoleExtractor(RoleNameFromContext)(o); err != nil {
+				return err
+			}
+		}
+
+		if len(o.listeners) == 0 {
+			if err = WithAuthorizationGrantLogger(
+				slog.New(slog.NewTextHandler(os.Stderr)),
+				slog.LevelInfo,
+			)(o); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+}
+
+func WithRoleRepository(repo RoleRepository) Option {
+	return func(o *options) error {
+		if o.roleRepository != nil {
+			return errors.New("role repository is already set")
+		}
+		if repo == nil {
+			return errors.New("cannot use a <nil> role repository")
+		}
+		o.roleRepository = repo
+		return nil
+	}
+}
+
+func WithListRoleRepository() Option {
+	return WithRoleRepository(&ListRepository{})
+}
+
+func WithMapRoleRepository() Option {
+	return WithRoleRepository(&MapRepository{})
+}
+
+func WithContextRoleExtractor(extractor ContextRoleExtractor) Option {
+	return func(o *options) error {
+		if o.contextRoleExtractor != nil {
+			return errors.New("context role extractor is already set")
+		}
+		if extractor == nil {
+			return errors.New("cannot use a <nil> context role extractor")
+		}
+		o.contextRoleExtractor = extractor
+		return nil
+	}
+}
 
 func WithCustomRole(r Role) Option {
 	return func(o *options) error {
@@ -21,11 +104,11 @@ func WithCustomRole(r Role) Option {
 		if name == "" {
 			return errors.New("cannot use an empty role name")
 		}
-		for _, role := range o.roles {
-			if name == role.Name() {
-				return fmt.Errorf("role names must be unique: %s", name)
-			}
-		}
+		// for _, role := range o.roles {
+		// 	if name == role.Name() {
+		// 		return fmt.Errorf("role names must be unique: %s", name)
+		// 	}
+		// }
 		o.roles = append(o.roles, r)
 		return nil
 	}

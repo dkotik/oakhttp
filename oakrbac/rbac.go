@@ -53,24 +53,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
-
-	"golang.org/x/exp/slog"
 )
 
 // RBAC is a simple Role Based Access Control system.
 type RBAC struct {
-	roles     []Role
-	listeners []Listener
+	roleRepository       RoleRepository
+	contextRoleExtractor ContextRoleExtractor
+	listeners            []Listener
 }
 
+// GetRole returns a [Role] that matches provided name.
 func (r *RBAC) GetRole(name string) (Role, error) {
-	for _, r := range r.roles {
-		if name == r.Name() {
-			return r, nil
-		}
-	}
-	return nil, ErrRoleNotFound
+	return r.roleRepository.GetRole(name)
 }
 
 // Authorize matches the named [Role] against an [Intention]. It returns the [Policy] that granted authorization. The second return value is [AuthorizationError] in place of a generic error.
@@ -157,17 +151,15 @@ func New(withOptions ...Option) (rbac *RBAC, err error) {
 	o := &options{}
 	for _, option := range append(
 		withOptions,
+		WithDefaultOptions(),
 		func(o *options) (err error) { // validate
-			if len(o.roles) == 0 {
-				return errors.New("at least one role is required")
-			}
-			if len(o.listeners) == 0 {
-				if err = WithSlogLogger(
-					slog.New(slog.NewTextHandler(os.Stderr)),
-					slog.LevelInfo,
-				)(o); err != nil {
-					return fmt.Errorf("could not setup default logger: %w", err)
+			for _, r := range o.roles {
+				if err = o.roleRepository.AddRole(r); err != nil {
+					return err
 				}
+			}
+			if o.roleRepository.CountRoles() == 0 {
+				return errors.New("at least one role is required")
 			}
 			return nil
 		},
@@ -177,8 +169,9 @@ func New(withOptions ...Option) (rbac *RBAC, err error) {
 		}
 	}
 	return &RBAC{
-		listeners: o.listeners,
-		roles:     o.roles,
+		roleRepository:       o.roleRepository,
+		contextRoleExtractor: o.contextRoleExtractor,
+		listeners:            o.listeners,
 	}, nil
 }
 

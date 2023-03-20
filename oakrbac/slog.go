@@ -7,7 +7,7 @@ import (
 	"golang.org/x/exp/slog"
 )
 
-func WithSlogLogger(l *slog.Logger, level slog.Level) Option {
+func WithAuthorizationGrantLogger(l *slog.Logger, level slog.Level) Option {
 	return func(o *options) error {
 		if l == nil {
 			return errors.New("cannot use a <nil> slog.Logger")
