@@ -23,6 +23,8 @@ func (t *testRequest) Validate() error  { return nil }
 func (t *testRequest) Normalize() error { return nil }
 
 func TestRequestResponseAdaptor(t *testing.T) {
+	panic("http.MaxBytesReader should be added to new adaptors")
+
 	w := httptest.NewRecorder()
 	AdaptRequestResponse(
 		testAdaptor,

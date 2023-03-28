@@ -10,6 +10,13 @@ import (
 	"net/http"
 )
 
+// RequestDecoder parses the contents of an [http.Request] into a struct pointer.
+// type RequestDecoder func(toStruct any, r *http.Request) error
+//
+// type Encoder interface {
+// 	Encode(http.ResponseWriter, any) error
+// }
+
 type Encoder interface {
 	Encode(any) error
 }
@@ -18,6 +25,8 @@ type Decoder interface {
 	Decode(any) error
 }
 
+// TODO: can use a generic struct to avoid having to use an adaptor along with a adaptor function
+// TODO: .
 type DomainAdaptor struct {
 	readLimit                  int64
 	encoderContentType         string

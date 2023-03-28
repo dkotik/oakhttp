@@ -105,6 +105,27 @@ func AdaptCustomRequest[T comparable](
 	)
 }
 
+// // TODO: make AdaptComplexRequestResponse version after putting http.MaxBytesReader in every other request here, where needed.
+// func AdaptComplexRequest[T comparable](
+// 	usingDomainAdaptor *DomainAdaptor,
+// 	requestValidatorNormalizer func(*http.Request, func(io.Reader) Decoder) (T, error),
+// 	domainRequestHandler func(context.Context, T) error,
+// 	middleware ...Middleware,
+// ) http.Handler {
+// 	return usingDomainAdaptor.ApplyMiddleware(
+// 		func(w http.ResponseWriter, r *http.Request) error {
+// 			request, err := requestValidatorNormalizer(r, func(io.Reader) Decoder {
+// 				return usingDomainAdaptor.decoderFactory(reader)
+// 			})
+// 			if err != nil {
+// 				return err
+// 			}
+// 			return domainRequestHandler(r.Context(), request)
+// 		},
+// 		middleware...,
+// 	)
+// }
+
 func AdaptURLPathTail(
 	usingDomainAdaptor *DomainAdaptor,
 	domainRequestHandler func(context.Context, string) error,
