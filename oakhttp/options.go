@@ -6,125 +6,98 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-
-	"github.com/dkotik/oakacs/oakhttp/ratelimiter"
 )
 
 type options struct {
-	readLimit                  int64
-	encoderContentType         string
-	encoderFactory             func(io.Writer) Encoder
-	decoderFactory             func(io.Reader) Decoder
-	errorHandler               func(Handler) http.HandlerFunc
-	middlewareFromInnerToOuter []Middleware
-	rateLimiterOptions         []ratelimiter.Option
+	ReadLimit int64
+	Decoder   Decoder
+	Encoder   Encoder
+}
+
+func newOptions(withOptions []Option) (o *options, err error) {
+	o = &options{}
+	for _, option := range withOptions {
+		if err = option(o); err != nil {
+			return nil, fmt.Errorf("cannot initialize the request domain adaptor: %w", err)
+		}
+	}
+	return o, nil
 }
 
 type Option func(*options) error
 
 func WithDefaultOptions() Option {
 	return func(o *options) (err error) {
-		defer func() {
-			if err != nil {
-				err = fmt.Errorf("failed to apply default option settion: %w", err)
-			}
-		}()
-
-		if o.readLimit == 0 {
-			if err = WithReadLimit(1024 * 64)(o); err != nil {
+		if o.ReadLimit == 0 {
+			if err = WithReadLimit(1024 * 1024)(o); err != nil {
 				return err
 			}
 		}
-		if o.encoderFactory == nil || o.decoderFactory == nil {
-			if err = WithEncoderDecoder(
-				"application/json",
-				func(w io.Writer) Encoder {
-					return json.NewEncoder(w)
-				},
-				func(r io.Reader) Decoder {
-					return json.NewDecoder(r)
-				},
-			)(o); err != nil {
-				return err
-			}
-		}
-		if o.errorHandler == nil {
-			if err = WithErrorHandler(DefaultErrorHandler)(o); err != nil {
-				return err
+		if o.Decoder == nil || o.Encoder == nil {
+			if err = WithEncodingJSON()(o); err != nil {
+				return nil
 			}
 		}
 		return nil
 	}
 }
 
-func WithReadLimit(n int64) Option {
+var jsonDecoder = func(v any, r io.Reader) error {
+	return json.NewDecoder(r).Decode(&v)
+}
+
+var jsonEncoder = func(w http.ResponseWriter, v any) error {
+	w.Header().Set("Context-Type", "application/json")
+	return json.NewEncoder(w).Encode(v)
+}
+
+func WithEncodingJSON() Option {
+	return func(o *options) (err error) {
+		if err = WithDecoder(jsonDecoder)(o); err != nil {
+			return err
+		}
+		return WithEncoder(jsonEncoder)(o)
+	}
+}
+
+func WithReadLimit(l int64) Option {
 	return func(o *options) error {
-		if o.readLimit != 0 {
+		if o.ReadLimit != 0 {
 			return errors.New("read limit is already set")
 		}
-		if n < 1 {
-			return errors.New("minimum read limit is 1")
+		if l < 1 {
+			return errors.New("cannot read less than 1 byte")
 		}
-		if n > 1024*1024*96 {
-			return errors.New("maximum read limit is 1024*1024*96")
+		if l > 1<<32 {
+			return errors.New("read limit is too large")
 		}
-		o.readLimit = n
+		o.ReadLimit = l
 		return nil
 	}
 }
 
-func WithEncoderDecoder(
-	encoderContentType string,
-	encoderFactory func(io.Writer) Encoder,
-	decoderFactory func(io.Reader) Decoder,
-) Option {
+func WithDecoder(d Decoder) Option {
 	return func(o *options) error {
-		if o.encoderFactory != nil || o.decoderFactory != nil {
-			return errors.New("encoder and decoder are already set")
+		if o.Decoder != nil {
+			return errors.New("decoder is already set")
 		}
-		if encoderContentType == "" {
-			return errors.New("cannot use an empty encoder content type")
+		if d == nil {
+			return errors.New("cannot use a <nil> decoder")
 		}
-		if encoderFactory == nil {
-			return errors.New("cannot use a <nil> encoder factory")
-		}
-		if o.decoderFactory != nil {
-			return errors.New("decoder factory is already set")
-		}
-		if decoderFactory == nil {
-			return errors.New("cannot use a <nil> decoder factory")
-		}
-		o.encoderContentType = encoderContentType
-		o.encoderFactory = encoderFactory
-		o.decoderFactory = decoderFactory
+		o.Decoder = d
 		return nil
 	}
 }
 
-func WithErrorHandler(h func(Handler) http.HandlerFunc) Option {
+func WithEncoder(e Encoder) Option {
 	return func(o *options) error {
-		if o.errorHandler != nil {
-			return errors.New("error handler is already set")
+		if o.Encoder != nil {
+			return errors.New("encoder is already set")
 		}
-		if h == nil {
-			return errors.New("cannot use a <nil> error handler")
+		if e == nil {
+			return errors.New("cannot use a <nil> encoder")
 		}
-		o.errorHandler = h
-		return nil
-	}
-}
-
-func WithRateLimiterOptions(withOptions ...ratelimiter.Option) Option {
-	return func(o *options) error {
-		if o.rateLimiterOptions != nil {
-			return errors.New("rate limiter options are already set")
-		}
-		for _, option := range withOptions {
-			if option == nil {
-				return errors.New("cannot use a <nil> rate limiter option")
-			}
-		}
-		o.rateLimiterOptions = withOptions
+		o.Encoder = e
 		return nil
 	}
 }

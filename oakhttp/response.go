@@ -5,11 +5,12 @@ import (
 	"net/http"
 )
 
-func NewRequestAdaptor[
+func NewRequestResponseAdaptor[
 	T any,
 	R ValidatableNormalizable[T],
+	P any,
 ](
-	handler DomainRequest[T, R],
+	handler DomainRequestResponse[T, R, P],
 	withOptions ...Option,
 ) (Handler, error) {
 	o, err := newOptions(append(withOptions, WithDefaultOptions()))
@@ -19,7 +20,8 @@ func NewRequestAdaptor[
 
 	limit := o.ReadLimit
 	decoder := o.Decoder
-	return NewComplexRequestAdaptor(
+	encoder := o.Encoder
+	return NewComplexRequestResponseAdaptor(
 		handler,
 		func(
 			w http.ResponseWriter,
@@ -40,15 +42,18 @@ func NewRequestAdaptor[
 			}
 			return request, nil
 		},
+		encoder,
 	)
 }
 
-func NewComplexRequestAdaptor[
+func NewComplexRequestResponseAdaptor[
 	T any,
 	R ValidatableNormalizable[T],
+	P any,
 ](
-	handler DomainRequest[T, R],
+	handler DomainRequestResponse[T, R, P],
 	factory RequestFactory[T, R],
+	encoder Encoder,
 ) (Handler, error) {
 	if handler == nil {
 		return nil, errors.New("complext request adaptor cannot use a <nil> request handler")
@@ -62,6 +67,10 @@ func NewComplexRequestAdaptor[
 		if err != nil {
 			return err
 		}
-		return handler(r.Context(), request)
+		response, err := handler(r.Context(), request)
+		if err != nil {
+			return err
+		}
+		return encoder(w, response)
 	}, nil
 }

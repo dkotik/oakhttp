@@ -12,6 +12,7 @@ type options struct {
 	PathPrefix               string
 	CutPathPrefixFromRequest bool
 	Routes                   map[string]oakhttp.Handler
+	Middleware               []oakhttp.Middleware
 }
 
 type Option func(*options) error
@@ -57,3 +58,31 @@ func WithRoute(path string, h oakhttp.Handler) Option {
 		return nil
 	}
 }
+
+// WithMiddleware wraps handler with [oakhttp.Middleware]. This option can be used multiple times. The final middleware chain is applied in reverse order to preserve logical order. For example, WithMiddleware(first, second, third) provides a handler which is equivalent to manually calling first(second(third(handler))) without this option.
+func WithMiddleware(mw ...oakhttp.Middleware) Option {
+	return func(o *options) error {
+		for _, middleware := range mw {
+			if middleware == nil {
+				return errors.New("cannot use a <nil> oakhttp.Middleware")
+			}
+		}
+		o.Middleware = append(o.Middleware, mw...)
+		return nil
+	}
+}
+
+// func WithRateLimiterOptions(withOptions ...ratelimiter.Option) Option {
+// 	return func(o *options) error {
+// 		if o.rateLimiterOptions != nil {
+// 			return errors.New("rate limiter options are already set")
+// 		}
+// 		for _, option := range withOptions {
+// 			if option == nil {
+// 				return errors.New("cannot use a <nil> rate limiter option")
+// 			}
+// 		}
+// 		o.rateLimiterOptions = withOptions
+// 		return nil
+// 	}
+// }

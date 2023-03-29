@@ -50,11 +50,16 @@ func New(withOptions ...Option) (oakhttp.Handler, error) {
 		}, nil
 	}
 
-	return func(w http.ResponseWriter, r *http.Request) error {
+	handler := func(w http.ResponseWriter, r *http.Request) error {
 		h, ok := routes[r.URL.Path]
 		if !ok {
 			return oakhttp.NewNotFoundError(r.URL.Path)
 		}
 		return h(w, r)
-	}, nil
+	}
+	for i := len(o.Middleware) - 1; i > 0; i-- {
+		handler = o.Middleware[i](handler)
+	}
+
+	return handler, nil
 }
