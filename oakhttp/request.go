@@ -51,10 +51,10 @@ func NewComplexRequestAdaptor[
 	factory RequestFactory[T, R],
 ) (Handler, error) {
 	if handler == nil {
-		return nil, errors.New("complext request adaptor cannot use a <nil> request handler")
+		return nil, errors.New("complex request adaptor cannot use a <nil> request handler")
 	}
 	if factory == nil {
-		return nil, errors.New("complext request adaptor cannot use a <nil> request factory")
+		return nil, errors.New("complex request adaptor cannot use a <nil> request factory")
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) error {
