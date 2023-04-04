@@ -1,3 +1,9 @@
+Your services should have a `/server` package that includes all the database plumbing, adapters with error handling, and the router that takes in domain methods from the root package. There should be no HTTP primitives in the domain logic whatsoever. This package is a scaffold of a minimal security gearbox that prepares your server for production.
+
+- [ ] global rate limit
+- [ ] session-based rate limiter? with a fallback to IP-based rate limiter
+- [ ] alerts for %-based failures on requests, say log critical when 10% of requests are failing.
+
 # Primary
 
 - [ ] remove alike oakwords

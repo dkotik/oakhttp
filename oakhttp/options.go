@@ -42,21 +42,21 @@ func WithDefaultOptions() Option {
 	}
 }
 
-var jsonDecoder = func(v any, r io.Reader) error {
+var DecoderJSON = func(v any, r io.Reader) error {
 	return json.NewDecoder(r).Decode(&v)
 }
 
-var jsonEncoder = func(w http.ResponseWriter, v any) error {
+var EncoderJSON = func(w http.ResponseWriter, v any) error {
 	w.Header().Set("Context-Type", "application/json")
 	return json.NewEncoder(w).Encode(v)
 }
 
 func WithEncodingJSON() Option {
 	return func(o *options) (err error) {
-		if err = WithDecoder(jsonDecoder)(o); err != nil {
+		if err = WithDecoder(DecoderJSON)(o); err != nil {
 			return err
 		}
-		return WithEncoder(jsonEncoder)(o)
+		return WithEncoder(EncoderJSON)(o)
 	}
 }
 
