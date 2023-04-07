@@ -5,6 +5,8 @@
 - [ ] Explain how ReBAC is implemented using oakrbac.Predicate to address the distinction explained here: https://dev.to/egeaytin/rbac-vs-rebac-when-to-use-them-47c4
 - [ ] Figure out the best way to mitigate CSRF:
     - [ ] https://dev.to/justlorain/use-session-middleware-to-implement-distributed-session-solution-based-on-redis-5b65 (example is buried)
+- [ ] SPA router generator with sha256 hashes for security that can be used for sign-in, recovery workflows!
+
 
 ## Features
 

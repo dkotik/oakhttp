@@ -11,6 +11,8 @@ type options struct {
 	cleanUpPeriod   time.Duration
 	maxAddressCount int
 	minAddressCount int
+	GlobalRate      Rate
+	ObfuscatedRate  Rate
 }
 
 type Option func(*options) error

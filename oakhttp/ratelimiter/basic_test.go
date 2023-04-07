@@ -1,40 +1,42 @@
 package ratelimiter
 
 import (
-	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 )
 
-func TestLimit(t *testing.T) {
-	t.Parallel()
+func TestBasicRateLimiter(t *testing.T) {
+	limit := float64(2)
+	interval := time.Second
+	rl := NewBasic(limit, interval)
 
 	cases := []struct {
-		StatusCode int
-		Sleep      time.Duration
+		Sleep time.Duration
+		Fails bool
 	}{
-		{StatusCode: http.StatusOK, Sleep: 0},
-		{StatusCode: http.StatusOK, Sleep: 0},
-		{StatusCode: http.StatusTooManyRequests, Sleep: time.Millisecond * 1050},
-		{StatusCode: http.StatusOK, Sleep: 0},
-		{StatusCode: http.StatusTooManyRequests, Sleep: time.Millisecond * 1050},
-		{StatusCode: http.StatusOK, Sleep: 0},
-		{StatusCode: http.StatusTooManyRequests, Sleep: 0},
+		{Sleep: 0, Fails: false},
+		{Sleep: 0, Fails: false},
+		{Sleep: 0, Fails: true},
+		{Sleep: 0, Fails: true},
+		{Sleep: time.Millisecond * 500, Fails: false},
+		{Sleep: time.Millisecond * 500, Fails: false},
+		{Sleep: 0, Fails: true},
 	}
 
-	handler := Must(NewBasic(
-		testHandler,
-		WithLimit(2, time.Second),
-	))
-
-	request := httptest.NewRequest(http.MethodGet, "/", nil)
+	var err error
 	for i, c := range cases {
-		r := captureResponse(handler, request)
-		if r.StatusCode != c.StatusCode {
-			t.Fatalf("rate limiter step %d failed: %d does not match %d",
-				i+1, r.StatusCode, c.StatusCode)
-		}
 		time.Sleep(c.Sleep)
+		err = rl.Take(nil)
+		if err != nil && !c.Fails {
+			t.Fatal(i+1, "rate limiter failed when not expecting it", rl.tokens, err)
+		}
 	}
+
+	// rl = NewBasic(0, 0) // test non-sence cases
+	// for i := range cases {
+	// 	err = rl.Take(nil)
+	// 	if err == nil {
+	// 		t.Fatal(i+1, "rate limiter passed on a non-sence case")
+	// 	}
+	// }
 }
