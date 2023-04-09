@@ -35,14 +35,23 @@ func NewRemoteAddrDiscriminator() Discriminator {
 	}
 }
 
-func NewCookieDiscriminator(name string) Discriminator {
-	if name == "" {
-		panic("cookie discriminator name is required")
+func NewCookieDiscriminator(name, noCookieValue string) Discriminator {
+	if noCookieValue == "" {
+		return func(r *http.Request) (string, error) {
+			cookie, err := r.Cookie(name)
+			if err == http.ErrNoCookie {
+				return "", SkipDiscriminator
+			} else if err != nil {
+				return "", err
+			}
+			return cookie.Value, nil
+		}
 	}
+
 	return func(r *http.Request) (string, error) {
 		cookie, err := r.Cookie(name)
 		if err == http.ErrNoCookie {
-			return "", SkipDiscriminator
+			return noCookieValue, nil
 		} else if err != nil {
 			return "", err
 		}
@@ -50,14 +59,21 @@ func NewCookieDiscriminator(name string) Discriminator {
 	}
 }
 
-func NewHeaderDiscriminator(name string) Discriminator {
-	if name == "" {
-		panic("header discriminator name is required")
+func NewHeaderDiscriminator(name, noHeaderValue string) Discriminator {
+	if noHeaderValue == "" {
+		return func(r *http.Request) (string, error) {
+			value := r.Header.Get(name)
+			if value == "" {
+				return "", SkipDiscriminator
+			}
+			return value, nil
+		}
 	}
+
 	return func(r *http.Request) (string, error) {
 		value := r.Header.Get(name)
 		if value == "" {
-			return "", SkipDiscriminator
+			return noHeaderValue, nil
 		}
 		return value, nil
 	}

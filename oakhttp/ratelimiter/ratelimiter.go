@@ -1,8 +1,10 @@
 package ratelimiter
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"time"
 
@@ -41,6 +43,42 @@ var ErrTooManyRequests = &TooManyRequestsError{
 	cause: errors.New("no more tokens available"),
 }
 
+func New(withOptions ...Option) (RateLimiter, error) {
+	o, err := newOptions(append(
+		withOptions,
+		func(o *options) error { // validate
+			return nil
+		},
+	)...)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create the rate limiter: %w", err)
+	}
+
+	if len(o.Discriminating) == 0 {
+		return o.Basic, nil
+	}
+
+	if o.CleanUpContext == nil {
+		o.CleanUpContext = context.Background()
+	}
+
+	if len(o.Discriminating) == 1 {
+		s := &SingleDiscriminating{
+			Basic:          *o.Basic,
+			discriminating: *o.Discriminating[0],
+		}
+		go s.purgeLoop(o.CleanUpContext, o.CleanUpPeriod)
+		return s, nil
+	}
+
+	m := &MultiDiscriminating{
+		Basic:          *o.Basic,
+		discriminating: o.Discriminating,
+	}
+	go m.purgeLoop(o.CleanUpContext, o.CleanUpPeriod)
+	return m, nil
+}
+
 // NewMiddleware protects an [oakhttp.Handler] using a [RateLimiter]. The display [Rate] can be used to obfuscate the true [RateLimiter] throughput. HTTP headers are set to promise availability of no more than one call. This is done to conceal the performance capacity of the system, while giving some useful information to API callers regarding service availability. "X-RateLimit-*" headers are experimental, inconsistent in implementation, and meant to be approximate. If display [Rate] is 0, the headers are ommitted.
 func NewMiddleware(l RateLimiter, displayRate Rate) oakhttp.Middleware {
 	if l == nil {
@@ -59,11 +97,13 @@ func NewMiddleware(l RateLimiter, displayRate Rate) oakhttp.Middleware {
 	}
 
 	limit := uint(1)
-	oneTokenWindow := displayRate.ReplishmentOfOneToken()
+	oneTokenWindow := time.Nanosecond * time.Duration(1.05/displayRate)
 	if oneTokenWindow < time.Second {
+		limit = uint(math.Min(
+			math.Floor(float64(time.Second.Nanoseconds())*float64(displayRate*0.95)),
+			1,
+		))
 		oneTokenWindow = time.Second
-		// limit = displayRate.ReplenishedTokens(0, to time.Time)
-		limit = uint(float64(time.Second.Nanoseconds()) * float64(displayRate))
 	}
 	displayLimit := fmt.Sprintf("%d", limit)
 	return func(next oakhttp.Handler) oakhttp.Handler {

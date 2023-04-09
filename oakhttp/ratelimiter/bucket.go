@@ -45,10 +45,6 @@ func (r Rate) ReplenishedTokens(from, to time.Time) float64 {
 	return float64(to.Sub(from).Nanoseconds()) * float64(r)
 }
 
-func (r Rate) ReplishmentOfOneToken() time.Duration {
-	return time.Nanosecond*time.Duration(1/r) + 1
-}
-
 type bucketMap map[string]*bucket
 
 func (m bucketMap) Take(tag string, limit float64, r Rate, from, to time.Time) bool {

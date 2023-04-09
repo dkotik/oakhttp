@@ -5,14 +5,6 @@ import (
 	"time"
 )
 
-func TestRate(t *testing.T) {
-	r := NewRate(1, time.Second)
-	replenishmentOfOne := r.ReplishmentOfOneToken()
-	if replenishmentOfOne != time.Second {
-		t.Fatal("replenishment does not match", replenishmentOfOne, time.Second)
-	}
-}
-
 func TestLeakyBucket(t *testing.T) {
 	limit := float64(9)
 	at := time.Now()
