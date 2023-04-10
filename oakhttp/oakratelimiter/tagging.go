@@ -15,7 +15,7 @@ type SingleTagging struct {
 	taggedBucketMap
 }
 
-func NewSingleDiscriminating(withOptions ...Option) (*SingleTagging, error) {
+func NewSingleTagging(withOptions ...Option) (*SingleTagging, error) {
 	o, err := newOptions(append(
 		withOptions,
 		func(o *options) error { // validate
@@ -60,9 +60,9 @@ func (d *SingleTagging) Take(r *http.Request) (err error) {
 		from,
 		from.Add(d.basic.interval),
 	) {
-		err = ErrTooManyRequests
+		err = d.basic.failure
 	}
-	return errors.Join(err, d.taggedBucketMap.Take(r, from))
+	return NewTooManyRequestsError(err, d.taggedBucketMap.Take(r, from))
 }
 
 func (d *SingleTagging) purgeLoop(ctx context.Context, interval time.Duration) {
@@ -99,7 +99,7 @@ type MultiTagging struct {
 	taggedBucketMap []taggedBucketMap
 }
 
-func NewMultiDiscriminating(withOptions ...Option) (*MultiTagging, error) {
+func NewMultiTagging(withOptions ...Option) (*MultiTagging, error) {
 	o, err := newOptions(append(
 		withOptions,
 		func(o *options) error { // validate
@@ -147,7 +147,7 @@ func (d *MultiTagging) Take(r *http.Request) (err error) {
 		from,
 		from.Add(d.basic.interval),
 	) {
-		err = ErrTooManyRequests
+		err = d.basic.failure
 	}
 
 	l := len(d.taggedBucketMap)
@@ -157,7 +157,7 @@ func (d *MultiTagging) Take(r *http.Request) (err error) {
 		cerr[i] = child.Take(r, from)
 	}
 
-	return errors.Join(cerr...)
+	return NewTooManyRequestsError(cerr...)
 }
 
 func (d *MultiTagging) purgeLoop(ctx context.Context, interval time.Duration) {

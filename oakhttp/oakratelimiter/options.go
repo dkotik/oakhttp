@@ -107,7 +107,10 @@ type Option func(*options) error
 
 func newOptions(withOptions ...Option) (o *options, err error) {
 	o = &options{}
-	for _, option := range withOptions {
+	for _, option := range append(
+		withOptions,
+		WithDefaultCleanUpPeriod(),
+	) {
 		if err = option(o); err != nil {
 			return nil, err
 		}
@@ -167,6 +170,21 @@ func WithIPAddressTagger(withOptions ...LimitOption) Option {
 			func(o *limitOptions) error {
 				if o.Name == "" {
 					o.Name = "ip-address"
+				}
+				return nil
+			},
+		)...,
+	)
+}
+
+func WithCookieTagger(name, noCookieValue string, withOptions ...LimitOption) Option {
+	return WithRequestTagger(
+		NewCookieTagger(name, noCookieValue),
+		append(
+			withOptions,
+			func(o *limitOptions) error {
+				if o.Name == "" {
+					o.Name = "cookie:" + name
 				}
 				return nil
 			},

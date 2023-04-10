@@ -1,9 +1,40 @@
 package oakratelimiter
 
 import (
+	"context"
 	"testing"
 	"time"
 )
+
+func TestBasicMiddleware(t *testing.T) {
+	limit := float64(2)
+	interval := time.Millisecond * 20
+	basic, err := newBasic(WithRate(limit, interval))
+	if err != nil {
+		t.Fatal("unable to initialize basic rate limiter:", err)
+	}
+	mw := basic.Middleware()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	t.Run("at a good rate", MiddlewareLoadTest(
+		ctx,
+		mw,
+		NewRate(limit, interval+5),
+		GetRequestFactory,
+		0, // expected rejection rate
+	))
+
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	t.Run("at a bad rate", MiddlewareLoadTest(
+		ctx,
+		mw,
+		NewRate(limit*5, interval),
+		GetRequestFactory,
+		0.8, // expected rejection rate
+	))
+}
 
 func TestBasicRateLimiter(t *testing.T) {
 	limit := float64(2)

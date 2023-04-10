@@ -17,11 +17,11 @@ type RateLimiter interface {
 }
 
 type TooManyRequestsError struct {
-	cause error
+	causes []error
 }
 
-func (e *TooManyRequestsError) Unwrap() error {
-	return e.cause
+func (e *TooManyRequestsError) Unwrap() []error {
+	return e.causes
 }
 
 func (e *TooManyRequestsError) Error() string {
@@ -35,13 +35,31 @@ func (e *TooManyRequestsError) HTTPStatusCode() int {
 func (e *TooManyRequestsError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.String("message", "too many requests"),
-		slog.Any("cause", e.cause),
+		slog.Any("causes", e.causes),
 	)
 }
 
-var ErrTooManyRequests = &TooManyRequestsError{
-	cause: errors.New("no more tokens available"),
+func NewTooManyRequestsError(causes ...error) error {
+	n := 0 // taken from standard library errors/join.go
+	for _, err := range causes {
+		if err != nil {
+			n++
+		}
+	}
+	if n == 0 {
+		return nil
+	}
+	real := make([]error, 0, n)
+	for _, err := range causes {
+		if err != nil {
+			real = append(real, err)
+		}
+	}
+	// panic(fmt.Sprintf("%+v", real))
+	return &TooManyRequestsError{causes: real}
 }
+
+var ErrTooManyRequests = NewTooManyRequestsError(errors.New("no more tokens available"))
 
 func New(withOptions ...Option) (RateLimiter, error) {
 	o, err := newOptions(append(

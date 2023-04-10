@@ -62,9 +62,8 @@ func newBasic(withOptions ...LimitOption) (*basic, error) {
 	}
 
 	return &basic{
-		failure: &TooManyRequestsError{
-			cause: fmt.Errorf("rate limiter %q ran out of tokens", o.Name),
-		},
+		failure: NewTooManyRequestsError(
+			fmt.Errorf("rate limiter %q ran out of tokens", o.Name)),
 		rate:     NewRate(o.Limit, o.Interval),
 		limit:    o.Limit,
 		interval: o.Interval,
