@@ -1,4 +1,4 @@
-package ratelimiter
+package oakratelimiter
 
 import (
 	"context"
@@ -54,7 +54,7 @@ func New(withOptions ...Option) (RateLimiter, error) {
 		return nil, fmt.Errorf("cannot create the rate limiter: %w", err)
 	}
 
-	if len(o.Discriminating) == 0 {
+	if len(o.Tagging) == 0 {
 		return o.Basic, nil
 	}
 
@@ -62,18 +62,18 @@ func New(withOptions ...Option) (RateLimiter, error) {
 		o.CleanUpContext = context.Background()
 	}
 
-	if len(o.Discriminating) == 1 {
-		s := &SingleDiscriminating{
-			Basic:          *o.Basic,
-			discriminating: *o.Discriminating[0],
+	if len(o.Tagging) == 1 {
+		s := &SingleTagging{
+			basic:           *o.Basic,
+			taggedBucketMap: o.Tagging[0],
 		}
 		go s.purgeLoop(o.CleanUpContext, o.CleanUpPeriod)
 		return s, nil
 	}
 
-	m := &MultiDiscriminating{
-		Basic:          *o.Basic,
-		discriminating: o.Discriminating,
+	m := &MultiTagging{
+		basic:           *o.Basic,
+		taggedBucketMap: o.Tagging,
 	}
 	go m.purgeLoop(o.CleanUpContext, o.CleanUpPeriod)
 	return m, nil

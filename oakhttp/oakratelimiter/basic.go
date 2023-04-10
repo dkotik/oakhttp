@@ -1,4 +1,4 @@
-package ratelimiter
+package oakratelimiter
 
 import (
 	"errors"
@@ -10,7 +10,7 @@ import (
 	"github.com/dkotik/oakacs/oakhttp"
 )
 
-type Basic struct {
+type basic struct {
 	failure  error
 	interval time.Duration
 	rate     Rate
@@ -20,11 +20,11 @@ type Basic struct {
 	bucket
 }
 
-func (b *Basic) Rate() Rate {
+func (b *basic) Rate() Rate {
 	return b.rate
 }
 
-func (b *Basic) Take(r *http.Request) error {
+func (b *basic) Take(r *http.Request) error {
 	t := time.Now()
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -35,15 +35,15 @@ func (b *Basic) Take(r *http.Request) error {
 	return nil
 }
 
-func (b *Basic) Middleware() oakhttp.Middleware {
+func (b *basic) Middleware() oakhttp.Middleware {
 	return NewMiddleware(b, b.rate)
 }
 
-func (b *Basic) ObfuscatedMiddleware(displayRate Rate) oakhttp.Middleware {
+func (b *basic) ObfuscatedMiddleware(displayRate Rate) oakhttp.Middleware {
 	return NewMiddleware(b, displayRate)
 }
 
-func NewBasic(withOptions ...LimitOption) (*Basic, error) {
+func newBasic(withOptions ...LimitOption) (*basic, error) {
 	o, err := newLimitOptions(append(
 		withOptions,
 		WithDefaultName(),
@@ -61,7 +61,7 @@ func NewBasic(withOptions ...LimitOption) (*Basic, error) {
 		return nil, fmt.Errorf("unable to initialize basic rate limiter: %w", err)
 	}
 
-	return &Basic{
+	return &basic{
 		failure: &TooManyRequestsError{
 			cause: fmt.Errorf("rate limiter %q ran out of tokens", o.Name),
 		},
@@ -71,4 +71,8 @@ func NewBasic(withOptions ...LimitOption) (*Basic, error) {
 		mu:       sync.Mutex{},
 		bucket:   bucket{},
 	}, nil
+}
+
+func NewBasic(withOptions ...LimitOption) (RateLimiter, error) {
+	return newBasic(withOptions...)
 }

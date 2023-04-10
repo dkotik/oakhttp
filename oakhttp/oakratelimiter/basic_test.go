@@ -1,4 +1,4 @@
-package ratelimiter
+package oakratelimiter
 
 import (
 	"testing"
@@ -8,7 +8,7 @@ import (
 func TestBasicRateLimiter(t *testing.T) {
 	limit := float64(2)
 	interval := time.Second
-	rl, err := NewBasic(WithRate(limit, interval))
+	rl, err := newBasic(WithRate(limit, interval))
 	if err != nil {
 		t.Fatal(err)
 	}

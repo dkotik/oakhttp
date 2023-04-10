@@ -1,4 +1,4 @@
-package ratelimiter
+package oakratelimiter
 
 import (
 	"io"

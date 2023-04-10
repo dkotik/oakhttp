@@ -1,4 +1,4 @@
-package ratelimiter
+package oakratelimiter
 
 import (
 	"context"
@@ -97,8 +97,8 @@ func WithDefaultInitialAllocationSize() LimitOption {
 }
 
 type options struct {
-	Basic          *Basic
-	Discriminating []*discriminating
+	Basic          *basic
+	Tagging        []taggedBucketMap
 	CleanUpContext context.Context
 	CleanUpPeriod  time.Duration
 }
@@ -123,45 +123,45 @@ func WithGlobalLimit(withOptions ...LimitOption) Option {
 		if o.Basic != nil {
 			return errors.New("global limit is already set")
 		}
-		if o.Basic, err = NewBasic(withOptions...); err != nil {
+		if o.Basic, err = newBasic(withOptions...); err != nil {
 			return fmt.Errorf("cannot create global limit: %w", err)
 		}
 		return nil
 	}
 }
 
-func WithDiscriminator(d Discriminator, withOptions ...LimitOption) Option {
+func WithRequestTagger(t Tagger, withOptions ...LimitOption) Option {
 	return func(o *options) (err error) {
-		if d == nil {
+		if t == nil {
 			return errors.New("cannot use a <nil> discriminator")
 		}
 		limitOptions, err := newLimitOptions(withOptions...)
 		if limitOptions.Name == "" {
-			limitOptions.Name = fmt.Sprintf("discriminator№%d", len(o.Discriminating)+1)
+			limitOptions.Name = fmt.Sprintf("discriminator№%d", len(o.Tagging)+1)
 		}
 		if err != nil {
-			return fmt.Errorf("cannot create %q rate limiter discriminator: %w", limitOptions.Name, err)
+			return fmt.Errorf("cannot create %q rate limiter tagger: %w", limitOptions.Name, err)
 		}
-		for _, existing := range o.Discriminating {
+		for _, existing := range o.Tagging {
 			if existing.name == limitOptions.Name {
-				return fmt.Errorf("rate limiter %q disciriminator already exists", limitOptions.Name)
+				return fmt.Errorf("rate limiter %q tagger already exists", limitOptions.Name)
 			}
 		}
-		o.Discriminating = append(o.Discriminating, &discriminating{
-			name:          limitOptions.Name,
-			limit:         limitOptions.Limit,
-			interval:      limitOptions.Interval,
-			rate:          NewRate(limitOptions.Limit, limitOptions.Interval),
-			bucketMap:     make(bucketMap, limitOptions.InitialAllocationSize),
-			discriminator: d,
+		o.Tagging = append(o.Tagging, taggedBucketMap{
+			name:      limitOptions.Name,
+			limit:     limitOptions.Limit,
+			interval:  limitOptions.Interval,
+			rate:      NewRate(limitOptions.Limit, limitOptions.Interval),
+			bucketMap: make(bucketMap, limitOptions.InitialAllocationSize),
+			tagger:    t,
 		})
 		return nil
 	}
 }
 
-func WithIPAddressDiscriminator(withOptions ...LimitOption) Option {
-	return WithDiscriminator(
-		NewIPAddressDiscriminator(),
+func WithIPAddressTagger(withOptions ...LimitOption) Option {
+	return WithRequestTagger(
+		NewIPAddressTagger(),
 		append(
 			withOptions,
 			func(o *limitOptions) error {

@@ -1,7 +1,10 @@
-package ratelimiter
+package oakratelimiter
 
 import (
+	"errors"
+	"fmt"
 	"math"
+	"net/http"
 	"time"
 )
 
@@ -66,4 +69,30 @@ func (m bucketMap) Purge(to time.Time) {
 			delete(m, k)
 		}
 	}
+}
+
+type taggedBucketMap struct {
+	name      string
+	interval  time.Duration
+	rate      Rate
+	limit     float64
+	bucketMap bucketMap
+	tagger    Tagger
+}
+
+// Must run inside mutex lock.
+func (d *taggedBucketMap) Take(r *http.Request, from time.Time) (err error) {
+	to := from.Add(d.interval)
+
+	tag, err := d.tagger(r)
+	if err != nil {
+		if errors.Is(err, SkipTagger) {
+			return nil
+		}
+		return fmt.Errorf("tagger %q failed to execute: %w", d.name, err)
+	}
+	if !d.bucketMap.Take(tag, d.limit, d.rate, from, to) {
+		return fmt.Errorf("tagger %q maxed out on tag: %s", d.name, tag)
+	}
+	return nil
 }
