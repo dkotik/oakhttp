@@ -38,17 +38,17 @@ func WithDefaultOptions() Option {
 			}
 		}
 		if o.TLSHandshakeTimeout == 0 {
-			if err = WithTLSHandshakeTimeout(time.Second * 3)(o); err != nil {
+			if err = WithTLSHandshakeTimeout(time.Second * 2)(o); err != nil {
 				return err
 			}
 		}
 		if o.ResponseHeaderTimeout == 0 {
-			if err = WithResponseHeaderTimeout(time.Second * 3)(o); err != nil {
+			if err = WithResponseHeaderTimeout(time.Second * 2)(o); err != nil {
 				return err
 			}
 		}
 		if o.ExpectContinueTimeout == 0 {
-			if err = WithKeepAlive(time.Second * 1)(o); err != nil {
+			if err = WithExpectContinueTimeout(time.Second * 1)(o); err != nil {
 				return err
 			}
 		}
