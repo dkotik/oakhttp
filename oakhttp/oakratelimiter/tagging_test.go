@@ -10,7 +10,7 @@ func TestSingleTaggingMiddleware(t *testing.T) {
 	limit := float64(2)
 	interval := time.Millisecond * 20
 	s, err := NewSingleTagging(
-		WithGlobalLimit(WithRate(limit, interval)),
+		WithSupervisingLimit(WithRate(limit, interval)),
 		WithIPAddressTagger(WithRate(limit, interval)),
 	)
 	if err != nil {
@@ -43,9 +43,9 @@ func TestMultiTaggingMiddleware(t *testing.T) {
 	limit := float64(2)
 	interval := time.Millisecond * 20
 	m, err := NewMultiTagging(
-		WithGlobalLimit(WithRate(limit, interval)),
+		WithSupervisingLimit(WithRate(limit, interval)),
 		WithIPAddressTagger(WithRate(limit, interval)),
-		WithCookieTagger("test", ""),
+		WithCookieTagger("test", "", WithRate(limit, interval)),
 	)
 	if err != nil {
 		t.Fatal("unable to initialize single tagging rate limiter:", err)

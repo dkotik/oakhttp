@@ -2,36 +2,42 @@ package oakratelimiter
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/dkotik/oakacs/oakhttp"
 	"golang.org/x/exp/slog"
 )
 
+// RateLimiter contrains the number of requests to a certain [Rate]. When it is exceeded, it should return [TooManyRequestsError].
 type RateLimiter interface {
 	Take(*http.Request) error
 }
 
+// TooManyRequestsError indicates overflowing request [Rate].
 type TooManyRequestsError struct {
 	causes []error
 }
 
+// Unwrap returns the list of reasons for [TooManyRequestsError].
 func (e *TooManyRequestsError) Unwrap() []error {
 	return e.causes
 }
 
+// Error returns a generic text, regardless of what caused the [TooManyRequestsError].
 func (e *TooManyRequestsError) Error() string {
 	return http.StatusText(http.StatusTooManyRequests)
 }
 
+// HTTPStatusCode presents a standard HTTP status code.
 func (e *TooManyRequestsError) HTTPStatusCode() int {
 	return http.StatusTooManyRequests
 }
 
+// LogValue captures causes into structured log entries.
 func (e *TooManyRequestsError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.String("message", "too many requests"),
@@ -39,6 +45,7 @@ func (e *TooManyRequestsError) LogValue() slog.Value {
 	)
 }
 
+// NewTooManyRequestsError returns a [TooManyRequestsError] if at least one of the causes is not <nil>. Otherwise, returns <nil>.
 func NewTooManyRequestsError(causes ...error) error {
 	n := 0 // taken from standard library errors/join.go
 	for _, err := range causes {
@@ -55,13 +62,13 @@ func NewTooManyRequestsError(causes ...error) error {
 			real = append(real, err)
 		}
 	}
-	// panic(fmt.Sprintf("%+v", real))
 	return &TooManyRequestsError{causes: real}
 }
 
-var ErrTooManyRequests = NewTooManyRequestsError(errors.New("no more tokens available"))
-
-func New(withOptions ...Option) (RateLimiter, error) {
+// New creates an [oakhttp.Middleware] from either [Basic], [SingleTagging], or [MultiTagging] rate limiters. The selection is based on the [Option]s provided. If the option set contains no request [Tagger]s, [Basic] middleware is returned. If one [Tagger], then [SingleTagging]. If more than one [Tagger], then [MultiTagging]. This function is able to instrument a performant [RateLimiter] for most practical cases.
+//
+// If you would like more exact or partially obfuscated configuration, use [NewBasic], [NewSingleTagging], [NewMultiTagging] with [NewMiddleware] constructors.
+func New(withOptions ...Option) (oakhttp.Middleware, error) {
 	o, err := newOptions(append(
 		withOptions,
 		func(o *options) error { // validate
@@ -73,7 +80,15 @@ func New(withOptions ...Option) (RateLimiter, error) {
 	}
 
 	if len(o.Tagging) == 0 {
-		return o.Basic, nil
+		return (&Basic{
+			failure: NewTooManyRequestsError(
+				fmt.Errorf("rate limiter %q ran out of tokens", o.Supervising.Name)),
+			rate:     NewRate(o.Supervising.Limit, o.Supervising.Interval),
+			limit:    o.Supervising.Limit,
+			interval: o.Supervising.Interval,
+			mu:       sync.Mutex{},
+			bucket:   bucket{},
+		}).Middleware(), nil
 	}
 
 	if o.CleanUpContext == nil {
@@ -82,19 +97,31 @@ func New(withOptions ...Option) (RateLimiter, error) {
 
 	if len(o.Tagging) == 1 {
 		s := &SingleTagging{
-			basic:           *o.Basic,
+			failure: NewTooManyRequestsError(
+				fmt.Errorf("rate limiter %q ran out of tokens", o.Supervising.Name)),
+			rate:            NewRate(o.Supervising.Limit, o.Supervising.Interval),
+			limit:           o.Supervising.Limit,
+			interval:        o.Supervising.Interval,
+			mu:              sync.Mutex{},
+			bucket:          bucket{},
 			taggedBucketMap: o.Tagging[0],
 		}
 		go s.purgeLoop(o.CleanUpContext, o.CleanUpPeriod)
-		return s, nil
+		return s.Middleware(), nil
 	}
 
 	m := &MultiTagging{
-		basic:           *o.Basic,
-		taggedBucketMap: o.Tagging,
+		failure: NewTooManyRequestsError(
+			fmt.Errorf("rate limiter %q ran out of tokens", o.Supervising.Name)),
+		rate:             NewRate(o.Supervising.Limit, o.Supervising.Interval),
+		limit:            o.Supervising.Limit,
+		interval:         o.Supervising.Interval,
+		mu:               sync.Mutex{},
+		bucket:           bucket{},
+		taggedBucketMaps: o.Tagging,
 	}
 	go m.purgeLoop(o.CleanUpContext, o.CleanUpPeriod)
-	return m, nil
+	return m.Middleware(), nil
 }
 
 // NewMiddleware protects an [oakhttp.Handler] using a [RateLimiter]. The display [Rate] can be used to obfuscate the true [RateLimiter] throughput. HTTP headers are set to promise availability of no more than one call. This is done to conceal the performance capacity of the system, while giving some useful information to API callers regarding service availability. "X-RateLimit-*" headers are experimental, inconsistent in implementation, and meant to be approximate. If display [Rate] is 0, the headers are ommitted.

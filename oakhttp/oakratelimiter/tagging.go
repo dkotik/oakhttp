@@ -5,16 +5,26 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/dkotik/oakacs/oakhttp"
 )
 
+// SingleTagging is a faster version of [MultiTagging] for situations
+// where only one [Tagger] is sufficient.
 type SingleTagging struct {
-	basic
+	failure  error
+	interval time.Duration
+	rate     Rate
+	limit    float64
+
+	mu sync.Mutex
+	bucket
 	taggedBucketMap
 }
 
+// NewSingleTagging initializes a [SingleTagging] rate limiter.
 func NewSingleTagging(withOptions ...Option) (*SingleTagging, error) {
 	o, err := newOptions(append(
 		withOptions,
@@ -30,7 +40,13 @@ func NewSingleTagging(withOptions ...Option) (*SingleTagging, error) {
 	}
 
 	s := &SingleTagging{
-		basic:           *o.Basic,
+		failure: NewTooManyRequestsError(
+			fmt.Errorf("rate limiter %q ran out of tokens", o.Supervising.Name)),
+		rate:            NewRate(o.Supervising.Limit, o.Supervising.Interval),
+		limit:           o.Supervising.Limit,
+		interval:        o.Supervising.Interval,
+		mu:              sync.Mutex{},
+		bucket:          bucket{},
 		taggedBucketMap: o.Tagging[0],
 	}
 
@@ -43,24 +59,25 @@ func NewSingleTagging(withOptions ...Option) (*SingleTagging, error) {
 
 // Rate returns discriminating [Rate] or global [Rate], whichever is slower.
 func (d *SingleTagging) Rate() Rate {
-	if d.taggedBucketMap.rate < d.basic.rate {
+	if d.taggedBucketMap.rate < d.rate {
 		return d.taggedBucketMap.rate
 	}
-	return d.basic.rate
+	return d.rate
 }
 
+// Take first takes from supervising bucket, and then from the tagged bucket map.
 func (d *SingleTagging) Take(r *http.Request) (err error) {
 	from := time.Now()
-	d.basic.mu.Lock()
-	defer d.basic.mu.Unlock()
+	d.mu.Lock()
+	defer d.mu.Unlock()
 
-	if !d.basic.bucket.Take(
-		d.basic.limit,
-		d.basic.rate,
+	if !d.bucket.Take(
+		d.limit,
+		d.rate,
 		from,
-		from.Add(d.basic.interval),
+		from.Add(d.interval),
 	) {
-		err = d.basic.failure
+		err = d.failure
 	}
 	return NewTooManyRequestsError(err, d.taggedBucketMap.Take(r, from))
 }
@@ -75,30 +92,36 @@ func (d *SingleTagging) purgeLoop(ctx context.Context, interval time.Duration) {
 		case <-ctx.Done():
 			return
 		case t = <-ticker.C:
+			d.mu.Lock()
+			d.bucketMap.Purge(t)
+			d.mu.Unlock()
 		}
-
-		d.basic.mu.Lock()
-		d.bucketMap.Purge(t)
-		// for _, bm := range r.bucketMaps {
-		// 	bm.Purge(t)
-		// }
-		d.basic.mu.Unlock()
 	}
 }
 
+// Middleware calls [NewMiddleware] with [SingleTagging] as parameter.
 func (d *SingleTagging) Middleware() oakhttp.Middleware {
 	return NewMiddleware(d, d.Rate())
 }
 
+// Middleware calls [NewMiddleware] with [SingleTagging] as parameter and a different display rate.
 func (d *SingleTagging) ObfuscatedMiddleware(displayRate Rate) oakhttp.Middleware {
 	return NewMiddleware(d, displayRate)
 }
 
+// MultiTagging rate limiter takes from the superivising bucket and a list of tagged bucket maps. It is the most flexible of the [RateLimiter]s and the least performant.
 type MultiTagging struct {
-	basic
-	taggedBucketMap []taggedBucketMap
+	failure  error
+	interval time.Duration
+	rate     Rate
+	limit    float64
+
+	mu sync.Mutex
+	bucket
+	taggedBucketMaps []taggedBucketMap
 }
 
+// NewMultiTagging initializes a [MultiTagging] rate limiter.
 func NewMultiTagging(withOptions ...Option) (*MultiTagging, error) {
 	o, err := newOptions(append(
 		withOptions,
@@ -114,8 +137,14 @@ func NewMultiTagging(withOptions ...Option) (*MultiTagging, error) {
 	}
 
 	m := &MultiTagging{
-		basic:           *o.Basic,
-		taggedBucketMap: o.Tagging,
+		failure: NewTooManyRequestsError(
+			fmt.Errorf("rate limiter %q ran out of tokens", o.Supervising.Name)),
+		rate:             NewRate(o.Supervising.Limit, o.Supervising.Interval),
+		limit:            o.Supervising.Limit,
+		interval:         o.Supervising.Interval,
+		mu:               sync.Mutex{},
+		bucket:           bucket{},
+		taggedBucketMaps: o.Tagging,
 	}
 
 	if o.CleanUpContext == nil {
@@ -127,8 +156,8 @@ func NewMultiTagging(withOptions ...Option) (*MultiTagging, error) {
 
 // Rate returns discriminating [Rate] or global [Rate], whichever is slower.
 func (d *MultiTagging) Rate() (r Rate) {
-	r = d.basic.rate
-	for _, child := range d.taggedBucketMap {
+	r = d.rate
+	for _, child := range d.taggedBucketMaps {
 		if child.rate < r {
 			r = child.rate
 		}
@@ -136,24 +165,25 @@ func (d *MultiTagging) Rate() (r Rate) {
 	return
 }
 
+// Take first takes from supervising bucket, and then from the tagged bucket maps.
 func (d *MultiTagging) Take(r *http.Request) (err error) {
 	from := time.Now()
-	d.basic.mu.Lock()
-	defer d.basic.mu.Unlock()
+	d.mu.Lock()
+	defer d.mu.Unlock()
 
-	if !d.basic.bucket.Take(
-		d.basic.limit,
-		d.basic.rate,
+	if !d.bucket.Take(
+		d.limit,
+		d.rate,
 		from,
-		from.Add(d.basic.interval),
+		from.Add(d.interval),
 	) {
-		err = d.basic.failure
+		err = d.failure
 	}
 
-	l := len(d.taggedBucketMap)
+	l := len(d.taggedBucketMaps)
 	cerr := make([]error, l+1)
-	cerr[l] = err // last cell is basic error
-	for i, child := range d.taggedBucketMap {
+	cerr[l] = err // last cell is supervising limit error
+	for i, child := range d.taggedBucketMaps {
 		cerr[i] = child.Take(r, from)
 	}
 
@@ -170,40 +200,21 @@ func (d *MultiTagging) purgeLoop(ctx context.Context, interval time.Duration) {
 		case <-ctx.Done():
 			return
 		case t = <-ticker.C:
+			d.mu.Lock()
+			for _, child := range d.taggedBucketMaps {
+				child.bucketMap.Purge(t)
+			}
+			d.mu.Unlock()
 		}
-
-		d.basic.mu.Lock()
-		for _, child := range d.taggedBucketMap {
-			child.bucketMap.Purge(t)
-		}
-		d.basic.mu.Unlock()
 	}
 }
 
+// Middleware calls [NewMiddleware] with [MultiTagging] as parameter.
 func (d *MultiTagging) Middleware() oakhttp.Middleware {
 	return NewMiddleware(d, d.Rate())
 }
 
+// Middleware calls [NewMiddleware] with [MultiTagging] as parameter and a different display rate.
 func (d *MultiTagging) ObfuscatedMiddleware(displayRate Rate) oakhttp.Middleware {
 	return NewMiddleware(d, displayRate)
 }
-
-// func (t *Discriminating) Take(r *http.Request) (Rate, error) {
-// 	t := time.Now()
-// 	b.mu.Lock()
-// 	defer b.mu.Unlock()
-//
-// 	remaining := b.bucket.Take(b.limit, b.rate, t, t.Add(b.interval))
-// 	// log.Println("remaining", remaining)
-// 	if remaining < 0 {
-// 		return b.rate, ErrTooManyRequests
-// 	}
-// 	return b.rate, nil
-// }
-
-// type RateLimiter struct {
-// 	tokenizers []Tokenizer
-// 	mu         sync.Mutex
-// 	global     *leakybucketmap.LeakyBucket
-// 	bucketMaps []*leakybucketmap.Map
-// }

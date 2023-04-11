@@ -8,7 +8,8 @@ import (
 )
 
 // SkipTagger is a sentinel error used to indicate
-// that a certain [http.Request] must be disregarded.
+// that a certain [http.Request] must be
+// disregarded for rate limiting purposes.
 //
 // revive:disable-next-line:error-naming
 var SkipTagger = errors.New("discriminator did not match")
@@ -20,8 +21,10 @@ var SkipTagger = errors.New("discriminator did not match")
 // sentinel value to disregard the [http.Request].
 type Tagger func(*http.Request) (string, error)
 
+// ContextTagger is used together with [NewRequestTaggerFromContextTagger] to tag requests based on context values. This can help with rate-limiting requests by a role.
 type ContextTagger func(context.Context) (string, error)
 
+// NewRequestTaggerFromContextTagger adapts a [ContextTagger] to a [Tagger].
 func NewRequestTaggerFromContextTagger(t ContextTagger) Tagger {
 	if t == nil {
 		panic("cannot use a <nil> context tagger")
@@ -31,6 +34,7 @@ func NewRequestTaggerFromContextTagger(t ContextTagger) Tagger {
 	}
 }
 
+// NewIPAddressTagger tags requests by client IP address.
 func NewIPAddressTagger() Tagger {
 	return func(r *http.Request) (string, error) {
 		ip, _, err := net.SplitHostPort(r.RemoteAddr)
@@ -41,12 +45,14 @@ func NewIPAddressTagger() Tagger {
 	}
 }
 
+// NewIPAddressTagger tags requests by client IP address and port. It is slightly faster than [NewIPAddressTagger].
 func NewIPAddressWithPortTagger() Tagger {
 	return func(r *http.Request) (string, error) {
 		return r.RemoteAddr, nil
 	}
 }
 
+// NewCookieTagger tags requests by certain cookie value. If [noCookieValue] is an empty string, this tagger issues [SkipTagger].
 func NewCookieTagger(name, noCookieValue string) Tagger {
 	if noCookieValue == "" {
 		return func(r *http.Request) (string, error) {
@@ -71,6 +77,7 @@ func NewCookieTagger(name, noCookieValue string) Tagger {
 	}
 }
 
+// NewHeaderTagger tags requests by certain header value. If [noHeaderValue] is an empty string, this tagger issues [SkipTagger].
 func NewHeaderTagger(name, noHeaderValue string) Tagger {
 	if noHeaderValue == "" {
 		return func(r *http.Request) (string, error) {

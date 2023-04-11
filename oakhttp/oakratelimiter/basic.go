@@ -1,7 +1,6 @@
 package oakratelimiter
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"sync"
@@ -10,7 +9,8 @@ import (
 	"github.com/dkotik/oakacs/oakhttp"
 )
 
-type basic struct {
+// Basic rate limiter enforces the limit using one leaky token bucket.
+type Basic struct {
 	failure  error
 	interval time.Duration
 	rate     Rate
@@ -20,11 +20,13 @@ type basic struct {
 	bucket
 }
 
-func (b *basic) Rate() Rate {
+// Rate returns the rate limiter [Rate].
+func (b *Basic) Rate() Rate {
 	return b.rate
 }
 
-func (b *basic) Take(r *http.Request) error {
+// Take consumes one token per request. Returns a [TooManyRequestsError] if the leaky bucket is drained.
+func (b *Basic) Take(r *http.Request) error {
 	t := time.Now()
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -35,33 +37,24 @@ func (b *basic) Take(r *http.Request) error {
 	return nil
 }
 
-func (b *basic) Middleware() oakhttp.Middleware {
+// Middleware creates an [oakhttp.Middleware] from the [Basic] rate limiter.
+func (b *Basic) Middleware() oakhttp.Middleware {
 	return NewMiddleware(b, b.rate)
 }
 
-func (b *basic) ObfuscatedMiddleware(displayRate Rate) oakhttp.Middleware {
+// ObfuscatedMiddleware creates an [oakhttp.Middleware] from the [Basic] rate limiter with a display [Rate] different from the actual.
+func (b *Basic) ObfuscatedMiddleware(displayRate Rate) oakhttp.Middleware {
 	return NewMiddleware(b, displayRate)
 }
 
-func newBasic(withOptions ...LimitOption) (*basic, error) {
-	o, err := newLimitOptions(append(
-		withOptions,
-		WithDefaultName(),
-		func(o *limitOptions) error {
-			// if o.Name == "" {
-			// 	return errors.New("name option is required")
-			// }
-			if o.InitialAllocationSize != 0 {
-				return errors.New("initial allocation size option cannot be applied to a basic rate limiter")
-			}
-			return nil
-		},
-	)...)
+// NewBasic initializes a [Basic] rate limiter.
+func NewBasic(withOptions ...LimitOption) (*Basic, error) {
+	o, err := newSupervisingLimitOptions(withOptions...)
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize basic rate limiter: %w", err)
 	}
 
-	return &basic{
+	return &Basic{
 		failure: NewTooManyRequestsError(
 			fmt.Errorf("rate limiter %q ran out of tokens", o.Name)),
 		rate:     NewRate(o.Limit, o.Interval),
@@ -70,8 +63,4 @@ func newBasic(withOptions ...LimitOption) (*basic, error) {
 		mu:       sync.Mutex{},
 		bucket:   bucket{},
 	}, nil
-}
-
-func NewBasic(withOptions ...LimitOption) (RateLimiter, error) {
-	return newBasic(withOptions...)
 }

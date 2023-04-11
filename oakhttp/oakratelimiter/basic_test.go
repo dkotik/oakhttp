@@ -9,7 +9,7 @@ import (
 func TestBasicMiddleware(t *testing.T) {
 	limit := float64(2)
 	interval := time.Millisecond * 20
-	basic, err := newBasic(WithRate(limit, interval))
+	basic, err := NewBasic(WithRate(limit, interval))
 	if err != nil {
 		t.Fatal("unable to initialize basic rate limiter:", err)
 	}
@@ -39,7 +39,7 @@ func TestBasicMiddleware(t *testing.T) {
 func TestBasicRateLimiter(t *testing.T) {
 	limit := float64(2)
 	interval := time.Second
-	rl, err := newBasic(WithRate(limit, interval))
+	rl, err := NewBasic(WithRate(limit, interval))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -16,7 +16,15 @@ type limitOptions struct {
 
 func newLimitOptions(withOptions ...LimitOption) (*limitOptions, error) {
 	o := &limitOptions{}
-	for _, option := range withOptions {
+	for _, option := range append(
+		withOptions,
+		func(o *limitOptions) error { // validate
+			if o.Limit == 0 || o.Interval == 0 {
+				return errors.New("WithRate option is required")
+			}
+			return nil
+		},
+	) {
 		if err := option(o); err != nil {
 			return nil, err
 		}
@@ -24,8 +32,23 @@ func newLimitOptions(withOptions ...LimitOption) (*limitOptions, error) {
 	return o, nil
 }
 
+func newSupervisingLimitOptions(withOptions ...LimitOption) (*limitOptions, error) {
+	return newLimitOptions(append(
+		withOptions,
+		WithDefaultName(),
+		func(o *limitOptions) error {
+			if o.InitialAllocationSize != 0 {
+				return errors.New("initial allocation size option cannot be applied to the supervising rate limiter")
+			}
+			return nil
+		},
+	)...)
+}
+
+// LimitOption configures a rate limitter. [Basic] relies on one set of [LimitOption]s. [SingleTagging] and [MultiTagging] use a set for superivising rate limit and additional sets for each [Tagger].
 type LimitOption func(*limitOptions) error
 
+// WithName associates a name with a rate limiter. It is displayed only in the logs.
 func WithName(name string) LimitOption {
 	return func(o *limitOptions) error {
 		if o.Name != "" {
@@ -39,6 +62,7 @@ func WithName(name string) LimitOption {
 	}
 }
 
+// WithDefaultName sets rate limiter name to "default."
 func WithDefaultName() LimitOption {
 	return func(o *limitOptions) error {
 		if o.Name == "" {
@@ -71,6 +95,7 @@ func WithRate(limit float64, interval time.Duration) LimitOption {
 	}
 }
 
+// WithInitialAllocationSize sets the number of pre-allocated items for a tagged bucket map. Higher number can improve initial performance at the cost of using more memory.
 func WithInitialAllocationSize(buckets int) LimitOption {
 	return func(o *limitOptions) error {
 		if o.InitialAllocationSize != 0 {
@@ -87,6 +112,7 @@ func WithInitialAllocationSize(buckets int) LimitOption {
 	}
 }
 
+// WithDefaultInitialAllocationSize sets initial map allocation to 1024.
 func WithDefaultInitialAllocationSize() LimitOption {
 	return func(o *limitOptions) error {
 		if o.InitialAllocationSize == 0 {
@@ -97,12 +123,13 @@ func WithDefaultInitialAllocationSize() LimitOption {
 }
 
 type options struct {
-	Basic          *basic
+	Supervising    *limitOptions
 	Tagging        []taggedBucketMap
 	CleanUpContext context.Context
 	CleanUpPeriod  time.Duration
 }
 
+// Option initializes a [RateLimiter].
 type Option func(*options) error
 
 func newOptions(withOptions ...Option) (o *options, err error) {
@@ -115,35 +142,40 @@ func newOptions(withOptions ...Option) (o *options, err error) {
 			return nil, err
 		}
 	}
-	if o.Basic == nil {
-		return nil, errors.New("global rate limit is required")
+	if o.Supervising == nil {
+		return nil, errors.New("WithSupervisingLimit option is required")
 	}
 	return o, nil
 }
 
-func WithGlobalLimit(withOptions ...LimitOption) Option {
+// WithSupervisingLimit sets the top rate limit for either [SingleTagging] or [MultiTagging] rate limiters to prevent [Tagger]s from consuming too much memory. Should be higher than the limit of any request tagger.
+func WithSupervisingLimit(withOptions ...LimitOption) Option {
 	return func(o *options) (err error) {
-		if o.Basic != nil {
-			return errors.New("global limit is already set")
+		if o.Supervising != nil {
+			return errors.New("supervising limit is already set")
 		}
-		if o.Basic, err = newBasic(withOptions...); err != nil {
-			return fmt.Errorf("cannot create global limit: %w", err)
+		if o.Supervising, err = newLimitOptions(withOptions...); err != nil {
+			return fmt.Errorf("cannot create supervising limit: %w", err)
 		}
 		return nil
 	}
 }
 
+// WithRequestTagger associates a request [Tagger] with a [RateLimiter]. [Tagger]s allow you to differentiate and group requests based on their properties.
 func WithRequestTagger(t Tagger, withOptions ...LimitOption) Option {
 	return func(o *options) (err error) {
 		if t == nil {
 			return errors.New("cannot use a <nil> discriminator")
 		}
-		limitOptions, err := newLimitOptions(withOptions...)
+		limitOptions, err := newLimitOptions(append(
+			withOptions,
+			WithDefaultInitialAllocationSize(),
+		)...)
+		if err != nil {
+			return fmt.Errorf("cannot create rate limiter with tagger %+v: %w", t, err)
+		}
 		if limitOptions.Name == "" {
 			limitOptions.Name = fmt.Sprintf("discriminator№%d", len(o.Tagging)+1)
-		}
-		if err != nil {
-			return fmt.Errorf("cannot create %q rate limiter tagger: %w", limitOptions.Name, err)
 		}
 		for _, existing := range o.Tagging {
 			if existing.name == limitOptions.Name {
@@ -162,6 +194,7 @@ func WithRequestTagger(t Tagger, withOptions ...LimitOption) Option {
 	}
 }
 
+// WithIPAddressTagger configures rate limiter to track requests based on client IP addresses.
 func WithIPAddressTagger(withOptions ...LimitOption) Option {
 	return WithRequestTagger(
 		NewIPAddressTagger(),
@@ -177,6 +210,7 @@ func WithIPAddressTagger(withOptions ...LimitOption) Option {
 	)
 }
 
+// WithCookieTagger configures rate limiter to track requests based on a certain cookie. If [noCookieValue] is an empty string, this [Tagger] issues a [SkipTagger] sentinel value.
 func WithCookieTagger(name, noCookieValue string, withOptions ...LimitOption) Option {
 	return WithRequestTagger(
 		NewCookieTagger(name, noCookieValue),
@@ -192,6 +226,7 @@ func WithCookieTagger(name, noCookieValue string, withOptions ...LimitOption) Op
 	)
 }
 
+// WithCleanUpPeriod sets the frequency of map clean up. Lower value frees up more memory at the cost of CPU cycles.
 func WithCleanUpPeriod(of time.Duration) Option {
 	return func(o *options) error {
 		if o.CleanUpPeriod != 0 {
@@ -208,6 +243,7 @@ func WithCleanUpPeriod(of time.Duration) Option {
 	}
 }
 
+// WithDefaultCleanUpPeriod sets clean up period to 15 minutes.
 func WithDefaultCleanUpPeriod() Option {
 	return func(o *options) error {
 		if o.CleanUpPeriod == 0 {
