@@ -31,17 +31,29 @@ func Run(ctx context.Context, withOptions ...Option) (err error) {
 		withOptions,
 		WithDefaultOptions(),
 		WithDefaultTraceIDGenerator(),
+		func(o *options) error { // validate
+			if o.Listener == nil {
+				return errors.New("cannot start a server without a network listener")
+			}
+			return nil
+		},
 	) {
 		if err = option(o); err != nil {
 			return fmt.Errorf("cannot create an Oak server: %w", err)
 		}
 	}
+	ln := o.Listener
+	defer func() {
+		if err := ln.Close(); err != nil {
+			o.Logger.Error("failed closing network listener", slog.Any("error", err))
+		}
+	}()
 
 	handler := o.Handler
 	contextFactory := o.ContextFactory
 	logger := o.Logger
 	server := &http.Server{
-		Addr:              fmt.Sprintf("%s:%d", o.Host, o.Port),
+		// Addr:              o.Address,
 		ReadTimeout:       o.ReadTimeout,
 		ReadHeaderTimeout: o.ReadHeaderTimeout,
 		WriteTimeout:      o.WriteTimeout,
@@ -67,12 +79,13 @@ func Run(ctx context.Context, withOptions ...Option) (err error) {
 	}(ctx, logger)
 
 	if o.TLSCertificateFile != "" {
-		err = server.ListenAndServeTLS(o.TLSCertificateFile, o.TLSKeyFile)
+		// err = server.ListenAndServeTLS(o.TLSCertificateFile, o.TLSKeyFile)
+		err = server.ServeTLS(ln, o.TLSCertificateFile, o.TLSKeyFile)
 	} else {
-		if o.Port == 443 || o.Port == 8443 {
-			return errors.New("must not expose a TLS server without its certificate file set")
-		}
-		err = server.ListenAndServe()
+		// if strings.HasSuffix(o.Address, ":443") || strings.HasSuffix(o.Address, ":8443") {
+		// 	return errors.New("must not expose a TLS server without its certificate file set")
+		// }
+		err = server.Serve(ln)
 	}
 
 	if err != nil {

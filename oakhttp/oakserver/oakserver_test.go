@@ -18,6 +18,7 @@ func TestServer(t *testing.T) {
 			ctx,
 			WithOakHandler(
 				func(w http.ResponseWriter, r *http.Request) error {
+					panic("boo")
 					return oakhttp.NewNotFoundError("test page")
 				},
 				oakhttp.NewErrorHandlerJSON(NewDebugLogger()),
@@ -37,7 +38,7 @@ func TestServer(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusNotFound {
+	if resp.StatusCode != http.StatusInternalServerError {
 		t.Fatal("unexpected status code:", resp.StatusCode)
 	}
 }

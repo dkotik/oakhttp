@@ -1,3 +1,6 @@
+# github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
+## explicit
+github.com/coreos/go-systemd/activation
 # github.com/dkotik/oakacs/oaktoken v0.0.2
 ## explicit; go 1.20
 github.com/dkotik/oakacs/oaktoken
@@ -11,5 +14,3 @@ golang.org/x/exp/slices
 golang.org/x/exp/slog
 golang.org/x/exp/slog/internal
 golang.org/x/exp/slog/internal/buffer
-# golang.org/x/time v0.3.0
-## explicit

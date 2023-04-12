@@ -3,8 +3,10 @@ package oakhttp
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"html/template"
 	"net/http"
+	"runtime"
 
 	"golang.org/x/exp/slog"
 )
@@ -124,9 +126,60 @@ func (e *NotFoundError) Error() string {
 	return "resource \"" + e.resource + "\" was not found"
 }
 
-// func (e *NotFoundError) LogValue() slog.Value {
-// 	return slog.GroupValue(
-// 		slog.Any("resource", e.resource),
-// 		slog.String("status_code", e.HTTPStatusCode()),
-// 	)
-// }
+func NewPanicRecoveryMiddleware(next Handler) Handler {
+	return func(w http.ResponseWriter, r *http.Request) (err error) {
+		defer func() {
+			if recovery := recover(); recovery != nil {
+				buf := make([]byte, 10<<10)
+				n := runtime.Stack(buf, false)
+				err = &PanicError{
+					cause:      recovery,
+					stackTrace: buf[:n],
+				}
+			}
+		}()
+		return next(w, r)
+	}
+}
+
+func NewPanicRecoveryHandler(next Handler, eh ErrorHandler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var err error
+		defer func() {
+			if recovery := recover(); recovery != nil {
+				buf := make([]byte, 10<<10)
+				n := runtime.Stack(buf, false)
+				err = &PanicError{
+					cause:      recovery,
+					stackTrace: buf[:n],
+				}
+			}
+			if err != nil {
+				eh(w, r, err)
+			}
+		}()
+		err = next(w, r)
+	}
+}
+
+type PanicError struct {
+	cause      any
+	stackTrace []byte
+}
+
+func (e *PanicError) HTTPStatusCode() int {
+	return http.StatusInternalServerError
+}
+
+func (e *PanicError) Error() string {
+	return http.StatusText(http.StatusInternalServerError)
+}
+
+func (e *PanicError) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.String("message", "process crashed: panic"),
+		slog.String("stack_trace", fmt.Sprintf("%s", e.stackTrace)),
+		slog.Any("cause", e.cause),
+		slog.Int("status_code", e.HTTPStatusCode()),
+	)
+}

@@ -15,7 +15,9 @@ type tracingHandler struct {
 }
 
 func (t *tracingHandler) Handle(ctx context.Context, r slog.Record) error {
-	r.AddAttrs(slog.String("traceID", TraceIDFromContext(ctx)))
+	if ID := TraceIDFromContext(ctx); ID != "" {
+		r.AddAttrs(slog.String("traceID", ID))
+	}
 	return t.Handler.Handle(ctx, r)
 }
 
