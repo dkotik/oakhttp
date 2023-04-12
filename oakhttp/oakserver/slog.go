@@ -10,12 +10,27 @@ import (
 	"golang.org/x/exp/slog"
 )
 
+type tracingHandler struct {
+	slog.Handler
+}
+
+func (t *tracingHandler) Handle(ctx context.Context, r slog.Record) error {
+	r.AddAttrs(slog.String("traceID", TraceIDFromContext(ctx)))
+	return t.Handler.Handle(ctx, r)
+}
+
+func NewTracingHandler(h slog.Handler) slog.Handler {
+	return &tracingHandler{
+		Handler: h,
+	}
+}
+
 func NewDebugLogger() *slog.Logger {
-	return slog.New(tint.Options{
+	return slog.New(NewTracingHandler(tint.Options{
 		// Level:      slog.LevelDebug,
 		Level:      -math.MaxInt, // log everything
 		TimeFormat: time.Kitchen,
-	}.NewHandler(os.Stderr))
+	}.NewHandler(os.Stderr)))
 }
 
 type slogAdaptor struct {

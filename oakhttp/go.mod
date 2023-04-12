@@ -7,3 +7,5 @@ require (
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
 	golang.org/x/time v0.3.0
 )
+
+require github.com/dkotik/oakacs/oaktoken v0.0.2 // indirect

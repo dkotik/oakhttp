@@ -38,7 +38,7 @@ func NewErrorHandlerJSON(l *slog.Logger) ErrorHandler {
 		if err == nil {
 			return
 		}
-		l.Error("OakHTTP request failed", slog.Any("error", err))
+		l.ErrorCtx(r.Context(), "OakHTTP request failed", slog.Any("error", err))
 		w.Header().Set("Content-Type", "application/json")
 
 		var httpError Error
@@ -59,7 +59,7 @@ func NewErrorHandlerJSON(l *slog.Logger) ErrorHandler {
 		}
 
 		if err != nil { // encoding failed
-			l.Error("OakHTTP error handler encoder failed", slog.Any("error", err))
+			l.ErrorCtx(r.Context(), "OakHTTP error handler encoder failed", slog.Any("error", err))
 		}
 	}
 }

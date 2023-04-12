@@ -1,3 +1,5 @@
+github.com/dkotik/oakacs/oaktoken v0.0.2 h1:ZgE/0Pse9VMpvkDnzy7MPA0FIyxWsqLudq5qY/M/Kf0=
+github.com/dkotik/oakacs/oaktoken v0.0.2/go.mod h1:uJjRGXmo+NbMOpMT7flaT4JLbhOY7y+a+5/iOa+aqyY=
 github.com/lmittmann/tint v0.1.2 h1:GlNChEwBanSE6xlSF0JwRGOAdwNV0I8bCjIpxr5rqyE=
 github.com/lmittmann/tint v0.1.2/go.mod h1:Hi8xHQVw7I5gYrQ2hVhB/dDhqdGATpCoFVX0Ep4pPDY=
 golang.org/x/exp v0.0.0-20230321023759-10a507213a29 h1:ooxPy7fPvB4kwsA2h+iBNHkAbp/4JxTSwCmvdjEYmug=

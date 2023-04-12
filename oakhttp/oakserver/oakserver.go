@@ -27,7 +27,11 @@ func Run(ctx context.Context, withOptions ...Option) (err error) {
 	defer stop()
 
 	o := &options{}
-	for _, option := range append(withOptions, WithDefaultOptions()) {
+	for _, option := range append(
+		withOptions,
+		WithDefaultOptions(),
+		WithDefaultTraceIDGenerator(),
+	) {
 		if err = option(o); err != nil {
 			return fmt.Errorf("cannot create an Oak server: %w", err)
 		}

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/dkotik/oakacs/oakhttp"
+	"github.com/dkotik/oakacs/oaktoken"
 	"golang.org/x/exp/slog"
 )
 
@@ -235,6 +236,36 @@ func WithContextFactory(f ContextFactory) Option {
 			return errors.New("cannot use a <nil> context factory")
 		}
 		o.ContextFactory = f
+		return nil
+	}
+}
+
+func WithTraceIDGenerator(generator func() string) Option {
+	return func(o *options) error {
+		if generator == nil {
+			return errors.New("cannot use a <nil> trace id generator")
+		}
+		return WithContextFactory(func(_ net.Listener) context.Context {
+			return ContextWithTraceIDGenerator(context.Background(), generator)
+		})(o)
+	}
+}
+
+func WithDefaultTraceIDGenerator() Option {
+	return func(o *options) error {
+		if o.ContextFactory == nil {
+			generator, err := oaktoken.New()
+			if err != nil {
+				return fmt.Errorf("cannot initialize token factory: %w", err)
+			}
+			return WithTraceIDGenerator(func() string {
+				token, err := generator()
+				if err != nil {
+					panic(err)
+				}
+				return token
+			})(o)
+		}
 		return nil
 	}
 }

@@ -20,8 +20,9 @@ func TestServer(t *testing.T) {
 				func(w http.ResponseWriter, r *http.Request) error {
 					return oakhttp.NewNotFoundError("test page")
 				},
-				oakhttp.NewErrorHandlerJSON(nil),
+				oakhttp.NewErrorHandlerJSON(NewDebugLogger()),
 			),
+			WithDebugOptions(),
 		)
 		if err != nil {
 			t.Fatal(err)
