@@ -34,8 +34,10 @@ type Option func(*options) error
 
 func WithDebugOptions() Option {
 	return func(o *options) (err error) {
-		if err = WithLogger(NewDebugLogger())(o); err != nil {
-			return err
+		if o.Logger == nil {
+			if err = WithLogger(NewDebugLogger())(o); err != nil {
+				return err
+			}
 		}
 		if o.Listener == nil {
 			if err = WithAddress("localhost", 8080)(o); err != nil {

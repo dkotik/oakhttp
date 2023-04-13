@@ -10,6 +10,7 @@ import (
 
 type options struct {
 	PathPrefix               string
+	TrailingSlashRedirects   bool
 	CutPathPrefixFromRequest bool
 	Routes                   map[string]oakhttp.Handler
 	Middleware               []oakhttp.Middleware
@@ -33,6 +34,16 @@ func WithPathPrefix(p string) Option {
 	}
 }
 
+func WithoutTrailingSlashRedirects() Option {
+	return func(o *options) error {
+		if !o.TrailingSlashRedirects {
+			return errors.New("trailing slash redirecting is already turned off")
+		}
+		o.TrailingSlashRedirects = false
+		return nil
+	}
+}
+
 func WithPathPrefixCutFromRequest() Option {
 	return func(o *options) error {
 		if o.CutPathPrefixFromRequest {
@@ -47,6 +58,9 @@ func WithRoute(path string, h oakhttp.Handler) Option {
 	return func(o *options) error {
 		if path == "" {
 			return errors.New("cannot use an empty path")
+		}
+		if strings.HasSuffix(path, "/") {
+			return errors.New("route path should not end with a trailing slash")
 		}
 		if h == nil {
 			return errors.New("cannot use a <nil> handler")

@@ -16,7 +16,8 @@ import (
 
 func New(withOptions ...Option) (oakhttp.Handler, error) {
 	o := &options{
-		Routes: make(map[string]oakhttp.Handler),
+		TrailingSlashRedirects: true,
+		Routes:                 make(map[string]oakhttp.Handler),
 	}
 
 	for _, option := range append(
@@ -36,6 +37,9 @@ func New(withOptions ...Option) (oakhttp.Handler, error) {
 	routes := make(map[string]oakhttp.Handler)
 	for p, handler := range o.Routes {
 		routes[o.PathPrefix+p] = handler
+		if o.TrailingSlashRedirects {
+			routes[o.PathPrefix+p+"/"] = trailingSlashRedirect
+		}
 	}
 
 	if o.CutPathPrefixFromRequest {
