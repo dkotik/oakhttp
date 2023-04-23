@@ -26,8 +26,8 @@ type options struct {
 	Logger             *slog.Logger
 	Listener           net.Listener
 	ContextFactory     ContextFactory
+	Handler            http.Handler
 	// ErrorHandler       oakhttp.ErrorHandler
-	Handler http.Handler
 }
 
 type Option func(*options) error
@@ -205,20 +205,30 @@ func WithLogger(logger *slog.Logger) Option {
 	}
 }
 
-func WithAddress(host string, port uint32) Option {
-	return func(o *options) (err error) {
+func WithListener(l net.Listener) Option {
+	return func(o *options) error {
 		if o.Listener != nil {
 			return errors.New("address is already set")
 		}
+		if l == nil {
+			return errors.New("cannot use a <nil> network listener")
+		}
+		o.Listener = l
+		return nil
+	}
+}
+
+func WithAddress(host string, port uint32) Option {
+	return func(o *options) (err error) {
 		if port < 1 {
 			return errors.New("cannot use port lower than 1")
 		}
 		address := fmt.Sprintf("%s:%d", host, port)
-		o.Listener, err = net.Listen("tcp", address)
+		listener, err := net.Listen("tcp", address)
 		if err != nil {
 			return fmt.Errorf("cannot bind listener to %q address: %w", address, err)
 		}
-		return nil
+		return WithListener(listener)(o)
 	}
 }
 

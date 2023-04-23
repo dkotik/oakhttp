@@ -147,6 +147,7 @@ func NewPanicRecoveryHandler(next Handler, eh ErrorHandler) http.HandlerFunc {
 		var err error
 		defer func() {
 			if recovery := recover(); recovery != nil {
+				// TODO: would debug.Stack() be better?
 				buf := make([]byte, 10<<10)
 				n := runtime.Stack(buf, false)
 				err = &PanicError{
