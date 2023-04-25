@@ -142,9 +142,12 @@ func NewPanicRecoveryMiddleware(next Handler) Handler {
 	}
 }
 
-func NewPanicRecoveryHandler(next Handler, eh ErrorHandler) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var err error
+// NewPanicRecoveryHandler protects handlers from panics
+// by converting them to errors.
+//
+// See another variant: https://github.com/go-chi/chi/blob/v5.0.8/middleware/recoverer.go
+func NewPanicRecoveryHandler(next Handler) Handler {
+	return func(w http.ResponseWriter, r *http.Request) (err error) {
 		defer func() {
 			if recovery := recover(); recovery != nil {
 				// TODO: would debug.Stack() be better?
@@ -155,11 +158,9 @@ func NewPanicRecoveryHandler(next Handler, eh ErrorHandler) http.HandlerFunc {
 					stackTrace: buf[:n],
 				}
 			}
-			if err != nil {
-				eh(w, r, err)
-			}
 		}()
 		err = next(w, r)
+		return
 	}
 }
 

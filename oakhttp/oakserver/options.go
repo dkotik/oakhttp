@@ -320,7 +320,13 @@ func WithOakHandler(h oakhttp.Handler, eh oakhttp.ErrorHandler) Option {
 		if eh == nil {
 			return errors.New("cannot use a <nil> OakHTTP error handler")
 		}
-		return WithHandler(oakhttp.NewPanicRecoveryHandler(h, eh))(o)
+		return WithHandler(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if err := oakhttp.NewPanicRecoveryHandler(h)(w, r); err != nil {
+					eh(w, r, err)
+				}
+			}),
+		)(o)
 		// return WithHandler(
 		// 	http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// 		// defer func() {

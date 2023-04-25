@@ -14,6 +14,8 @@ import (
 	"github.com/dkotik/oakacs/oakhttp"
 )
 
+type Map map[string]oakhttp.Handler
+
 func New(withOptions ...Option) (oakhttp.Handler, error) {
 	o := &options{
 		TrailingSlashRedirects: true,
