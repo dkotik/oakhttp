@@ -58,6 +58,7 @@ func New(withOptions ...Option) (oakbotswat.Verifier, error) {
 			return "", fmt.Errorf("invalid HTTP API request: %w", err)
 		}
 		request = request.WithContext(ctx)
+		request.Header.Set("Content-Type", "application/json") // critical
 		hr, err := o.HTTPClient.Do(request)
 		if err != nil {
 			return "", fmt.Errorf("HTTP API request failed: %w", err)

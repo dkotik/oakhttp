@@ -2,9 +2,11 @@ package oakbotswat
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 
 	"github.com/dkotik/oakacs/oakhttp"
+	"golang.org/x/exp/slog"
 )
 
 func New(withOptions ...Option) (oakhttp.Middleware, error) {
@@ -22,13 +24,30 @@ func New(withOptions ...Option) (oakhttp.Middleware, error) {
 		if err != nil {
 			return "", err
 		}
-		return o.Verifier(r.Context(), token, r.RemoteAddr)
+		cached, err := o.Cache.GetToken(r.Context(), token)
+		if err != nil {
+			return "", err
+		}
+		if cached {
+			return token, nil // cache hit
+		}
+
+		ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+		// first returned value is data
+		_, err = o.Verifier(r.Context(), token, ip)
+		if err != nil {
+			return "", err
+		}
+		o.Cache.SetToken(r.Context(), token)
+		return token, nil
 	}
 
 	return func(next oakhttp.Handler) oakhttp.Handler {
 		return func(w http.ResponseWriter, r *http.Request) error {
 			_, err := verify(r)
 			if err != nil {
+				slog.Error("failed botswat verification", slog.Any("error", err))
+				// panic(err)
 				return o.Encoder(w, err)
 			}
 			return next(w, r)

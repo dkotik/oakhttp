@@ -1,10 +1,10 @@
 package oakbotswat
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/dkotik/oakacs/oakhttp"
 )
@@ -30,6 +30,10 @@ func WithDefaultOptions() Option {
 			if err = WithCookieResponseExtractor("botswat_token")(o); err != nil {
 				return err
 			}
+		}
+
+		if o.Cache == nil {
+			o.Cache = NewMapCache(time.Minute*15, 2000)
 		}
 
 		if o.Encoder == nil {
@@ -110,34 +114,34 @@ func WithCache(c Cache) Option {
 	}
 }
 
-func WithCacheAdaptor(adaptor CacheAdaptor) Option {
-	if adaptor == nil {
-		return func(o *options) error {
-			return errors.New("cannot use a <nil> cache adaptor")
-		}
-	}
-
-	return WithCache(
-		func(v Verifier) Verifier {
-			return func(
-				ctx context.Context,
-				clientResponseToken string,
-				clientIPAddress string,
-			) (string, error) {
-				key := []byte(clientIPAddress + "^" + clientResponseToken)
-				userData, err := adaptor.Get(ctx, key)
-				if err == nil {
-					return string(userData), nil // cache hit
-				}
-				freshUserData, err := v(ctx, clientResponseToken, clientIPAddress)
-				if err != nil {
-					return "", err
-				}
-				if err = adaptor.Set(ctx, key, []byte(freshUserData)); err != nil {
-					return "", err
-				}
-				return freshUserData, err
-			}
-		},
-	)
-}
+// func WithCacheAdaptor(adaptor CacheAdaptor) Option {
+// 	if adaptor == nil {
+// 		return func(o *options) error {
+// 			return errors.New("cannot use a <nil> cache adaptor")
+// 		}
+// 	}
+//
+// 	return WithCache(
+// 		func(v Verifier) Verifier {
+// 			return func(
+// 				ctx context.Context,
+// 				clientResponseToken string,
+// 				clientIPAddress string,
+// 			) (string, error) {
+// 				key := []byte(clientIPAddress + "^" + clientResponseToken)
+// 				userData, err := adaptor.Get(ctx, key)
+// 				if err == nil {
+// 					return string(userData), nil // cache hit
+// 				}
+// 				freshUserData, err := v(ctx, clientResponseToken, clientIPAddress)
+// 				if err != nil {
+// 					return "", err
+// 				}
+// 				if err = adaptor.Set(ctx, key, []byte(freshUserData)); err != nil {
+// 					return "", err
+// 				}
+// 				return freshUserData, err
+// 			}
+// 		},
+// 	)
+// }

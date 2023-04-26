@@ -28,13 +28,6 @@ type Verifier func(
 	err error,
 )
 
-type Cache func(Verifier) Verifier
-
-type CacheAdaptor interface {
-	Get(context.Context, []byte) ([]byte, error)
-	Set(context.Context, []byte, []byte) error
-}
-
 type ResponseExtractor func(
 	r *http.Request,
 ) (

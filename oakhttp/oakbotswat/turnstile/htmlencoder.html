@@ -35,6 +35,11 @@
       }
     </style>
     <script type="text/javascript">
+    function toggle(ID, on) {
+      var element = document.getElementById(ID);
+      element.style.display = on ? "block" : "none";
+    }
+
     function setCookie(cname, cvalue, exdays) {
       const d = new Date();
       d.setTime(d.getTime() + (exdays*24*60*60*1000));
@@ -43,8 +48,14 @@
     }
 
     function callback(token) {
-      console.log("got token", token, "save it as a cookie");
-      setCookie("botswat_cookie", token, 1);
+      setCookie("botswat_token", token, 1);
+      toggle("success", true);
+      console.log("new token", token);
+      // setTimeout(function(){window.location.reload();}, 2000);
+    }
+
+    function callbackError(err) {
+      toggle("success", false);
     }
     </script>
   </head>
@@ -53,12 +64,25 @@
       <h1>{{ template "title" . }}</h1>
       <p>Please provide proof of humanity to access thir page.</p>
       siteKey: {{ . }}
-      <div class="cf-turnstile" data-sitekey="{{ . }}" data-callback="callback"></div>
+
+<pre>
+type EncoderOptions struct {
+  SiteKey string
+  Action string
+  ErrorURL string
+}
+</pre>
+
+      <div class="cf-turnstile" data-sitekey="{{ . }}" data-action="view" data-callback="callback" data-callback-error="callbackError" data-theme="light" data-language="{{ template "locale" . }}" data-size="normal"></div>
 
       Requires enabled Javascript and Cookies to complete.
 
+      <section id="success" style="display:none;">
+        <red>You have proven your humanity!</red>
+      </section>
+
       {{- block "return" . -}}
-        <a href="#back" onclick="window.history.back()">go back</a>
+        <a href="#back" onclick="window.location.reload()">Refresh</a>
       {{- end -}}
     </article>
   </body>
