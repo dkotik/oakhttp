@@ -1,6 +1,7 @@
 package oakhttp
 
 import (
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,6 +11,9 @@ import (
 
 	"golang.org/x/exp/slog"
 )
+
+//go:embed error.html
+var ErrorTemplate string
 
 type Error interface {
 	error

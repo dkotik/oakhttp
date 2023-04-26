@@ -3,6 +3,7 @@ package turnstile
 import (
 	"time"
 
+	"github.com/dkotik/oakacs/oakhttp/oakbotswat"
 	"github.com/relvacode/iso8601"
 )
 
@@ -35,5 +36,5 @@ func (r *Response) Time() (time.Time, error) {
 }
 
 func (r *Response) Validate() error {
-	return botswat.NewErrorFromCodes(r.ErrorCodes...)
+	return oakbotswat.NewErrorFromCodes(r.ErrorCodes...)
 }

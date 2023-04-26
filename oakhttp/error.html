@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="{{ block "locale" . }en{{ end }}">
+  <head>
+    <meta charset="utf-8">
+    <meta name="robots" content="noindex, follow">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ block "title" . }}Internal Server Error{{ end }}</title>
+    <meta name="description" content="{{ block "description" . }}
+      {{- . -}}
+    {{ end }}">
+    {{- template "scripts" . -}}
+    <style media="all">
+      body {
+        color: {{ block "textColor" .}}#333{{ end }};
+        background-color: {{ block "backgroundColor" .}}#fff{{ end }};
+      }
+
+      article {
+        margin: 4em auto;
+        max-width: 25em;
+      }
+
+      a {
+        display: block;
+        padding: 1em 1.5em;
+        border-radius: 0.5em;
+        color: {{ template "backgroundColor" . }};
+        background-color: {{ block "actionColor" .}}#0edd7a{{ end }};
+      }
+    </style>
+  </head>
+  <body>
+    <article>
+      <h1>{{ template "title" . }}</h1>
+      <p>{{ template "description" . }}</p>
+      {{- block "return" . -}}
+        <a href="#back" onclick="window.history.back()">go back</a>
+      {{- end -}}
+    </article>
+  </body>
+</html>

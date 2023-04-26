@@ -1,4 +1,4 @@
-package botswat
+package oakbotswat
 
 import "errors"
 

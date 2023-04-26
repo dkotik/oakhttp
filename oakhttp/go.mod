@@ -8,3 +8,5 @@ require (
 	github.com/lmittmann/tint v0.2.0
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
 )
+
+require github.com/relvacode/iso8601 v1.3.0 // indirect

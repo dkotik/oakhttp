@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="{{ block "locale" . }}en{{ end }}">
+  <head>
+    <meta charset="utf-8">
+    <meta name="robots" content="noindex, follow">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ block "title" . }}Internal Server Error{{ end }}</title>
+    <meta name="description" content="Please provide proof of humanity to access thir page.">
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <style media="all">
+      body {
+        color: {{ block "textColor" .}}#333{{ end }};
+        background-color: {{ block "backgroundColor" .}}#fff{{ end }};
+      }
+
+      article {
+        margin: 4em auto;
+        max-width: 25em;
+      }
+
+      a {
+        display: block;
+        text-align: center;
+        text-transform: capitalize;
+        text-decoration: none;
+        padding: 1em 1.5em;
+        border-radius: 0.5em;
+        color: {{ template "backgroundColor" . }};
+        background-color: {{ block "actionColor" .}}#0edd7a{{ end }};
+      }
+
+      .cf-turnstile {
+        width: fit-content;
+        margin: 2em auto;
+      }
+    </style>
+    <script type="text/javascript">
+    function setCookie(cname, cvalue, exdays) {
+      const d = new Date();
+      d.setTime(d.getTime() + (exdays*24*60*60*1000));
+      let expires = "expires="+ d.toUTCString();
+      document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+    }
+
+    function callback(token) {
+      console.log("got token", token, "save it as a cookie");
+      setCookie("botswat_cookie", token, 1);
+    }
+    </script>
+  </head>
+  <body>
+    <article>
+      <h1>{{ template "title" . }}</h1>
+      <p>Please provide proof of humanity to access thir page.</p>
+      siteKey: {{ . }}
+      <div class="cf-turnstile" data-sitekey="{{ . }}" data-callback="callback"></div>
+
+      Requires enabled Javascript and Cookies to complete.
+
+      {{- block "return" . -}}
+        <a href="#back" onclick="window.history.back()">go back</a>
+      {{- end -}}
+    </article>
+  </body>
+</html>

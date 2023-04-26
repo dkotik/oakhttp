@@ -19,10 +19,10 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/dkotik/oakacs/oakhttp/botswat"
+	"github.com/dkotik/oakacs/oakhttp/oakbotswat"
 )
 
-func New(withOptions ...Option) (botswat.Verifier, error) {
+func New(withOptions ...Option) (oakbotswat.Verifier, error) {
 	o := &options{}
 	var err error
 	for _, option := range append(

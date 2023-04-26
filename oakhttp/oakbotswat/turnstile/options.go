@@ -126,8 +126,8 @@ func WithAllowedActions(actions ...string) Option {
 				if action == existing {
 					return fmt.Errorf("allowed action %q has already been set", action)
 				}
-				o.AllowedActions = append(o.AllowedActions, action)
 			}
+			o.AllowedActions = append(o.AllowedActions, action)
 		}
 		return nil
 	}

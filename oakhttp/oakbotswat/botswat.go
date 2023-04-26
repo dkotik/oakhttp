@@ -1,4 +1,4 @@
-package botswat
+package oakbotswat
 
 import (
 	"context"
@@ -6,8 +6,6 @@ import (
 )
 
 type Botswat interface {
-	ResponseTokenPrompt() []byte
-
 	// VerifyResponseToken should return `nil` for valid tokens, [ErrNotHuman] for rejected tokens, or an [Error] for any other condition.
 	//
 	// A response may only be validated once. If the same response is presented twice, the second and each subsequent request will generate an error stating that the response has already been consumed.

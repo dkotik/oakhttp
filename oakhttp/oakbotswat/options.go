@@ -1,16 +1,19 @@
-package botswat
+package oakbotswat
 
 import (
 	"context"
 	"errors"
 	"fmt"
 	"net/http"
+
+	"github.com/dkotik/oakacs/oakhttp"
 )
 
 type options struct {
 	Verifier          Verifier
 	ResponseExtractor ResponseExtractor
 	Cache             Cache
+	Encoder           oakhttp.Encoder
 }
 
 type Option func(*options) error
@@ -27,6 +30,10 @@ func WithDefaultOptions() Option {
 			if err = WithCookieResponseExtractor("botswat_token")(o); err != nil {
 				return err
 			}
+		}
+
+		if o.Encoder == nil {
+			o.Encoder = oakhttp.EncoderJSON
 		}
 
 		return nil
@@ -75,6 +82,19 @@ func WithCookieResponseExtractor(name string) Option {
 			return c.Value, nil
 		},
 	)
+}
+
+func WithEncoder(e oakhttp.Encoder) Option {
+	return func(o *options) error {
+		if o.Encoder != nil {
+			return errors.New("request encoder is already set")
+		}
+		if e == nil {
+			return errors.New("cannot use a <nil> request encoder")
+		}
+		o.Encoder = e
+		return nil
+	}
 }
 
 func WithCache(c Cache) Option {
