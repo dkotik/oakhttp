@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/dkotik/oakacs/oakhttp"
@@ -15,27 +14,35 @@ import (
 )
 
 func main() {
+	logger := oakserver.NewDebugLogger()
+	slog.SetDefault(logger)
 	err := func() error {
 		verifier, err := turnstile.New(
 			turnstile.WithHostname("localhost"),
 			turnstile.WithAllowedActions("view"),
 		)
 		if err != nil {
-			return fmt.Errorf("cannot initiate turnstile: %w", err)
+			return fmt.Errorf("cannot initialize turnstile: %w", err)
 		}
-		botswat, err := oakbotswat.New(
-			oakbotswat.WithCache(oakbotswat.NewMapCache(time.Minute, 20)),
-			oakbotswat.WithVerifier(verifier),
-			oakbotswat.WithEncoder(turnstile.NewEncoderHTML(os.Getenv("TURNSTILE_SITE_KEY"))),
+		gate, err := turnstile.NewGate(
+			turnstile.WithSiteAction("view"),
 		)
 		if err != nil {
-			return fmt.Errorf("cannot initiate OakBotSWAT: %w", err)
+			return fmt.Errorf("cannot initialize encoder: %w", err)
+		}
+		botswat, err := oakbotswat.NewGate(
+			gate,
+			oakbotswat.WithCache(oakbotswat.NewMapCache(time.Minute, 20)),
+			oakbotswat.WithVerifier(verifier),
+		)
+		if err != nil {
+			return fmt.Errorf("cannot initialize OakBotSWAT: %w", err)
 		}
 
 		slog.Info("started server on http://localhost:8080")
 		return oakserver.Run(
 			context.Background(),
-			oakserver.WithDebugOptions(),
+			// oakserver.WithDebugOptions(),
 			oakserver.WithOakHandler(
 				botswat(
 					func(w http.ResponseWriter, r *http.Request) error {

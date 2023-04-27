@@ -4,13 +4,15 @@
     <meta charset="utf-8">
     <meta name="robots" content="noindex, follow">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ block "title" . }}Internal Server Error{{ end }}</title>
-    <meta name="description" content="Please provide proof of humanity to access thir page.">
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <title>{{ .Title }}</title>
+    <meta name="description" content="{{ .Description }}">
+    <script src="{{ template "script" . }}" async defer></script>
     <style media="all">
       body {
         color: {{ block "textColor" .}}#333{{ end }};
         background-color: {{ block "backgroundColor" .}}#fff{{ end }};
+        font-family: sans-serif;
+        font-size: 1.4em;
       }
 
       article {
@@ -29,10 +31,7 @@
         background-color: {{ block "actionColor" .}}#0edd7a{{ end }};
       }
 
-      .cf-turnstile {
-        width: fit-content;
-        margin: 2em auto;
-      }
+      {{ template "style" . }}
     </style>
     <script type="text/javascript">
     function toggle(ID, on) {
@@ -40,50 +39,46 @@
       element.style.display = on ? "block" : "none";
     }
 
-    function setCookie(cname, cvalue, exdays) {
-      const d = new Date();
-      d.setTime(d.getTime() + (exdays*24*60*60*1000));
-      let expires = "expires="+ d.toUTCString();
-      document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
-    }
-
     function callback(token) {
-      setCookie("botswat_token", token, 1);
+      const d = new Date();
+      // d.setTime(d.getTime() + (exdays*24*60*60*1000));
+      d.setTime(d.getTime() + ({{ .CookieDuration.Seconds }}*1000));
+      let expires = "expires="+ d.toUTCString();
+      document.cookie = {{ .CookieName }} + "=" + token + ";" + expires + ";path=/";
+
+
       toggle("success", true);
-      console.log("new token", token);
+      toggle("error", false);
+      // console.log("new token", token);
       // setTimeout(function(){window.location.reload();}, 2000);
     }
 
     function callbackError(err) {
       toggle("success", false);
+      toggle("error", true);
     }
     </script>
   </head>
   <body>
     <article>
-      <h1>{{ template "title" . }}</h1>
-      <p>Please provide proof of humanity to access thir page.</p>
-      siteKey: {{ . }}
+      <h1>{{ .Title }}</h1>
+      <p>{{ .Description }}</p>
 
-<pre>
-type EncoderOptions struct {
-  SiteKey string
-  Action string
-  ErrorURL string
-}
-</pre>
+      {{ template "element" . }}
 
-      <div class="cf-turnstile" data-sitekey="{{ . }}" data-action="view" data-callback="callback" data-callback-error="callbackError" data-theme="light" data-language="{{ template "locale" . }}" data-size="normal"></div>
-
-      Requires enabled Javascript and Cookies to complete.
+      <!-- Requires enabled Javascript and Cookies to complete. -->
 
       <section id="success" style="display:none;">
-        <red>You have proven your humanity!</red>
+        <p>You have proven your humanity!</p>
+        <a href="#proceed" onclick="window.location.reload()">Proceed</a>
       </section>
 
-      {{- block "return" . -}}
+      <section id="error" style="display:none;">
+        <p>
+          Having trouble reaching humanity validation server...
+        </p>
         <a href="#back" onclick="window.location.reload()">Refresh</a>
-      {{- end -}}
+      </section>
     </article>
   </body>
 </html>

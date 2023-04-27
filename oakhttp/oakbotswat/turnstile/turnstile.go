@@ -29,9 +29,6 @@ func New(withOptions ...Option) (oakbotswat.Verifier, error) {
 		withOptions,
 		WithDefaultOptions(),
 		func(o *options) error { // validate
-			if o.Hostname == "" {
-				return errors.New("host name is required")
-			}
 			if len(o.AllowedActions) == 0 {
 				return errors.New("at least one allowed action is required")
 			}
@@ -45,7 +42,7 @@ func New(withOptions ...Option) (oakbotswat.Verifier, error) {
 
 	return func(ctx context.Context, clientResponseToken, IP string) (data string, err error) {
 		payload, err := json.Marshal(&Request{
-			Secret:   o.Secret,
+			Secret:   o.SecretKey,
 			Response: clientResponseToken,
 			RemoteIP: IP,
 		})

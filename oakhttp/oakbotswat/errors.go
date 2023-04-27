@@ -2,6 +2,8 @@ package oakbotswat
 
 import "errors"
 
+var ErrTokenEmpty = errors.New("token is empty")
+
 type Error string
 
 func NewErrorFromCodes(codes ...string) error {
@@ -11,8 +13,6 @@ func NewErrorFromCodes(codes ...string) error {
 	}
 	return errors.Join(errs...)
 }
-
-var ErrNotHuman = errors.New("robot detected")
 
 const (
 	ErrMissingInputSecret   Error = "missing-input-secret"

@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/dkotik/oakacs/oakhttp/oakclient"
 )
 
 type options struct {
 	HTTPClient     *http.Client
-	Secret         string
+	SecretKey      string
 	Endpoint       string
 	Hostname       string
 	AllowedActions []string
@@ -39,24 +40,18 @@ func WithDefaultOptions() Option {
 				return err
 			}
 		}
-		if o.Secret == "" {
-			if err = WithSecret(
-				os.Getenv("TURNSTILE_SECRET_KEY"),
-			)(o); err != nil {
-				return fmt.Errorf("please check TURNSTILE_SECRET_KEY environment variable: %w", err)
+		if o.Hostname == "" {
+			if err = WithDefaultHostname()(o); err != nil {
+				return err
 			}
 		}
-		if o.Secret == "" {
-			if err = WithHostname(
-				os.Getenv("TURNSTILE_HOST_NAME"),
-			)(o); err != nil {
-				return fmt.Errorf("please check TURNSTILE_HOST_NAME environment variable: %w", err)
+		if o.SecretKey == "" {
+			if err = WithDefaultSecretKey()(o); err != nil {
+				return err
 			}
 		}
 		if o.Endpoint == "" {
-			if err = WithEndpoint(
-				"https://challenges.cloudflare.com/turnstile/v0/siteverify",
-			)(o); err != nil {
+			if err = WithDefaultEndpoint()(o); err != nil {
 				return err
 			}
 		}
@@ -77,17 +72,31 @@ func WithHTTPClient(client *http.Client) Option {
 	}
 }
 
-func WithSecret(key string) Option {
+func WithSecretKey(key string) Option {
 	return func(o *options) error {
-		if o.Secret != "" {
+		if o.SecretKey != "" {
 			return errors.New("secret key is already set")
 		}
 		if key == "" {
 			return errors.New("cannot use an empty secret key")
 		}
-		o.Secret = key
+		o.SecretKey = key
 		return nil
 	}
+}
+
+func WithSecretKeyFromEnvironment(variableName string) Option {
+	return func(o *options) error {
+		secret := strings.TrimSpace(os.Getenv(variableName))
+		if secret == "" {
+			return fmt.Errorf("cannot get secret from environment: variable %q is not set", variableName)
+		}
+		return WithSecretKey(secret)(o)
+	}
+}
+
+func WithDefaultSecretKey() Option {
+	return WithSecretKeyFromEnvironment("TURNSTILE_SECRET_KEY")
 }
 
 func WithEndpoint(URL string) Option {
@@ -103,6 +112,10 @@ func WithEndpoint(URL string) Option {
 	}
 }
 
+func WithDefaultEndpoint() Option {
+	return WithEndpoint("https://challenges.cloudflare.com/turnstile/v0/siteverify")
+}
+
 func WithHostname(name string) Option {
 	return func(o *options) error {
 		if o.Hostname != "" {
@@ -114,6 +127,20 @@ func WithHostname(name string) Option {
 		o.Hostname = name
 		return nil
 	}
+}
+
+func WithHostnameFromEnvironment(variableName string) Option {
+	return func(o *options) error {
+		hostname := strings.TrimSpace(os.Getenv(variableName))
+		if hostname == "" {
+			return fmt.Errorf("cannot get hostname from the environment: variable %q is not set", variableName)
+		}
+		return WithHostname(hostname)(o)
+	}
+}
+
+func WithDefaultHostname() Option {
+	return WithHostnameFromEnvironment("TURNSTILE_HOST_NAME")
 }
 
 func WithAllowedActions(actions ...string) Option {

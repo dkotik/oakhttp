@@ -4,16 +4,15 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
-
-	"github.com/dkotik/oakacs/oakhttp"
 )
+
+const DefaultCookieName = "oakbotswat"
 
 type options struct {
 	Verifier          Verifier
 	ResponseExtractor ResponseExtractor
 	Cache             Cache
-	Encoder           oakhttp.Encoder
+	// Encoder           oakhttp.Encoder
 }
 
 type Option func(*options) error
@@ -25,21 +24,16 @@ func WithDefaultOptions() Option {
 				err = fmt.Errorf("cannot apply a default setting: %w", err)
 			}
 		}()
-
 		if o.ResponseExtractor == nil {
-			if err = WithCookieResponseExtractor("botswat_token")(o); err != nil {
+			if err = WithCookieResponseExtractor(DefaultCookieName)(o); err != nil {
 				return err
 			}
 		}
-
-		if o.Cache == nil {
-			o.Cache = NewMapCache(time.Minute*15, 2000)
-		}
-
-		if o.Encoder == nil {
-			o.Encoder = oakhttp.EncoderJSON
-		}
-
+		// if o.Encoder == nil {
+		// 	if err = WithEncoder(oakhttp.EncoderJSON)(o); err != nil {
+		// 		return err
+		// 	}
+		// }
 		return nil
 	}
 }
@@ -88,18 +82,18 @@ func WithCookieResponseExtractor(name string) Option {
 	)
 }
 
-func WithEncoder(e oakhttp.Encoder) Option {
-	return func(o *options) error {
-		if o.Encoder != nil {
-			return errors.New("request encoder is already set")
-		}
-		if e == nil {
-			return errors.New("cannot use a <nil> request encoder")
-		}
-		o.Encoder = e
-		return nil
-	}
-}
+// func WithEncoder(e oakhttp.Encoder) Option {
+// 	return func(o *options) error {
+// 		if o.Encoder != nil {
+// 			return errors.New("request encoder is already set")
+// 		}
+// 		if e == nil {
+// 			return errors.New("cannot use a <nil> request encoder")
+// 		}
+// 		o.Encoder = e
+// 		return nil
+// 	}
+// }
 
 func WithCache(c Cache) Option {
 	return func(o *options) error {
