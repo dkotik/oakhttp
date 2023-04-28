@@ -30,8 +30,7 @@ func main() {
 		if err != nil {
 			return fmt.Errorf("cannot initialize encoder: %w", err)
 		}
-		botswat, err := oakbotswat.NewGate(
-			gate,
+		botswat, err := oakbotswat.New(
 			oakbotswat.WithCache(oakbotswat.NewMapCache(time.Minute, 20)),
 			oakbotswat.WithVerifier(verifier),
 		)
@@ -44,7 +43,7 @@ func main() {
 			context.Background(),
 			// oakserver.WithDebugOptions(),
 			oakserver.WithOakHandler(
-				botswat(
+				botswat.Gate(gate)(
 					func(w http.ResponseWriter, r *http.Request) error {
 						fmt.Fprintf(w, "though shalt pass")
 						return nil

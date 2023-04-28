@@ -10,8 +10,13 @@ import (
 var ErrCacheFull = errors.New("there are too many cache records")
 
 type Cache interface {
-	GetToken(context.Context, string) (bool, error)
-	SetToken(context.Context, string) error
+	GetToken(ctx context.Context, key string) (string, bool, error)
+	SetToken(ctx context.Context, key, value string) error
+}
+
+type UserData struct {
+	Data    string
+	Expires time.Time
 }
 
 type MapCache struct {
@@ -19,7 +24,7 @@ type MapCache struct {
 	recordLimit int
 	cleanLimit  int
 	mu          sync.Mutex
-	tokens      map[string]time.Time
+	tokens      map[string]*UserData
 }
 
 func NewMapCache(d time.Duration, recordLimit int) *MapCache {
@@ -35,22 +40,26 @@ func NewMapCache(d time.Duration, recordLimit int) *MapCache {
 		recordLimit: recordLimit,
 		cleanLimit:  recordLimit / 4,
 		mu:          sync.Mutex{},
-		tokens:      make(map[string]time.Time),
+		tokens:      make(map[string]*UserData),
 	}
 }
 
-func (m *MapCache) GetToken(ctx context.Context, token string) (bool, error) {
+func (m *MapCache) GetToken(ctx context.Context, key string) (string, bool, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	expires, ok := m.tokens[token]
+	userData, ok := m.tokens[key]
 	if !ok {
-		return false, nil
+		return "", false, nil
 	}
-	return expires.After(time.Now()), nil
+	if userData.Expires.Before(time.Now()) {
+		delete(m.tokens, key)
+		return "", false, nil
+	}
+	return userData.Data, true, nil
 }
 
-func (m *MapCache) SetToken(ctx context.Context, token string) error {
+func (m *MapCache) SetToken(ctx context.Context, key, value string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -58,8 +67,8 @@ func (m *MapCache) SetToken(ctx context.Context, token string) error {
 
 	t := time.Now()
 	if len(m.tokens) >= m.cleanLimit {
-		for existing, expires := range m.tokens {
-			if expires.Before(t) {
+		for existing, userData := range m.tokens {
+			if userData.Expires.Before(t) {
 				delete(m.tokens, existing)
 			}
 		}
@@ -69,6 +78,9 @@ func (m *MapCache) SetToken(ctx context.Context, token string) error {
 		return ErrCacheFull
 	}
 
-	m.tokens[token] = t.Add(m.duration)
+	m.tokens[key] = &UserData{
+		Data:    value,
+		Expires: t.Add(m.duration),
+	}
 	return nil
 }

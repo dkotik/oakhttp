@@ -2,7 +2,7 @@ package oakbotswat
 
 import "errors"
 
-var ErrTokenEmpty = errors.New("token is empty")
+var ErrTokenEmpty = errors.New("cannot recover request token proving humanity: token is empty")
 
 type Error string
 

@@ -2,41 +2,29 @@ package oakbotswat
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 )
 
-const DefaultCookieName = "oakbotswat"
+const (
+	DefaultCookieName = "HumanityToken"
+	DefaultHeaderName = "HumanityToken"
+)
+
+type HumanityTokenExtractor func(
+	r *http.Request,
+) (
+	clientResponseToken string,
+	err error,
+)
 
 type options struct {
-	Verifier          Verifier
-	ResponseExtractor ResponseExtractor
-	Cache             Cache
+	Verifier               Verifier
+	HumanityTokenExtractor HumanityTokenExtractor
+	Cache                  Cache
 	// Encoder           oakhttp.Encoder
 }
 
 type Option func(*options) error
-
-func WithDefaultOptions() Option {
-	return func(o *options) (err error) {
-		defer func() {
-			if err != nil {
-				err = fmt.Errorf("cannot apply a default setting: %w", err)
-			}
-		}()
-		if o.ResponseExtractor == nil {
-			if err = WithCookieResponseExtractor(DefaultCookieName)(o); err != nil {
-				return err
-			}
-		}
-		// if o.Encoder == nil {
-		// 	if err = WithEncoder(oakhttp.EncoderJSON)(o); err != nil {
-		// 		return err
-		// 	}
-		// }
-		return nil
-	}
-}
 
 func WithVerifier(v Verifier) Option {
 	return func(o *options) error {
@@ -51,35 +39,55 @@ func WithVerifier(v Verifier) Option {
 	}
 }
 
-func WithResponseExtractor(e ResponseExtractor) Option {
+func WithHumanityTokenExtractor(e HumanityTokenExtractor) Option {
 	return func(o *options) error {
-		if o.ResponseExtractor != nil {
+		if o.HumanityTokenExtractor != nil {
 			return errors.New("response extractor is already set")
 		}
 		if e == nil {
 			return errors.New("cannot use a <nil> response extractor")
 		}
-		o.ResponseExtractor = e
+		o.HumanityTokenExtractor = e
 		return nil
 	}
 }
 
-func WithCookieResponseExtractor(name string) Option {
-	if name == "" {
-		return func(o *options) error {
+func WithCookieHumanityTokenExtractor(name string) Option {
+	return func(o *options) error {
+		if name == "" {
 			return errors.New("cannot use an empty cookie name")
 		}
+		return WithHumanityTokenExtractor(
+			func(r *http.Request) (string, error) {
+				c, err := r.Cookie(name)
+				if err != nil {
+					return "", err
+				}
+				return c.Value, nil
+			},
+		)(o)
 	}
+}
 
-	return WithResponseExtractor(
-		func(r *http.Request) (string, error) {
-			c, err := r.Cookie(name)
-			if err != nil {
-				return "", err
-			}
-			return c.Value, nil
-		},
-	)
+func WithDefaultCookieHumanityTokenExtractor() Option {
+	return WithCookieHumanityTokenExtractor(DefaultCookieName)
+}
+
+func WithHeaderHumanityTokenExtractor(name string) Option {
+	return func(o *options) error {
+		if name == "" {
+			return errors.New("cannot use an empty HTTP header name")
+		}
+		return WithHumanityTokenExtractor(
+			func(r *http.Request) (string, error) {
+				return r.Header.Get(name), nil
+			},
+		)(o)
+	}
+}
+
+func WithDefaultHeaderHumanityTokenExtractor() Option {
+	return WithHeaderHumanityTokenExtractor(DefaultHeaderName)
 }
 
 // func WithEncoder(e oakhttp.Encoder) Option {

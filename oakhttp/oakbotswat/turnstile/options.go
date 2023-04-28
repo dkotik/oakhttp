@@ -18,15 +18,6 @@ type options struct {
 	AllowedActions []string
 }
 
-func (o *options) IsAllowedAction(a string) bool {
-	for _, action := range o.AllowedActions {
-		if action == a {
-			return true
-		}
-	}
-	return false
-}
-
 type Option func(*options) error
 
 func WithDefaultOptions() Option {
