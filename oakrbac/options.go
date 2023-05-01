@@ -3,16 +3,22 @@ package oakrbac
 import (
 	"errors"
 	"fmt"
-	"os"
 
 	"golang.org/x/exp/slog"
 )
 
+type policySet struct {
+	ForRole  string
+	Policies []Policy
+	Silent   bool
+}
+
 type options struct {
-	roleRepository       RoleRepository
-	contextRoleExtractor ContextRoleExtractor
-	roles                []Role
-	listeners            []Listener
+	logger                *slog.Logger
+	logAllowedActionsOnly bool
+	contextRoleExtractor  ContextRoleExtractor
+	roles                 []string
+	policySets            []*policySet
 }
 
 type Option func(*options) error
@@ -30,56 +36,40 @@ func WithOptions(withOptions ...Option) Option {
 
 func WithDefaultOptions() Option {
 	return func(o *options) (err error) {
-		defer func() {
-			if err != nil {
-				err = fmt.Errorf("could not set a default option: %w", err)
+		if o.logger == nil {
+			if err = WithDefaultLogger()(o); err != nil {
+				return err
 			}
-		}()
-
+		}
 		if o.roleRepository == nil {
 			if err = WithListRoleRepository()(o); err != nil {
 				return err
 			}
 		}
-
 		if o.contextRoleExtractor == nil {
 			if err = WithContextRoleExtractor(RoleNameFromContext)(o); err != nil {
 				return err
 			}
 		}
-
-		if len(o.listeners) == 0 {
-			if err = WithAuthorizationGrantLogger(
-				slog.New(slog.NewTextHandler(os.Stderr)),
-				slog.LevelInfo,
-			)(o); err != nil {
-				return err
-			}
-		}
-
 		return nil
 	}
 }
 
-func WithRoleRepository(repo RoleRepository) Option {
+func WithLogger(logger *slog.Logger) Option {
 	return func(o *options) error {
-		if o.roleRepository != nil {
-			return errors.New("role repository is already set")
+		if o.logger != nil {
+			return errors.New("logger is already set")
 		}
-		if repo == nil {
-			return errors.New("cannot use a <nil> role repository")
+		if logger == nil {
+			return errors.New("cannot use an empty logger")
 		}
-		o.roleRepository = repo
+		o.logger = logger
 		return nil
 	}
 }
 
-func WithListRoleRepository() Option {
-	return WithRoleRepository(&ListRepository{})
-}
-
-func WithMapRoleRepository() Option {
-	return WithRoleRepository(&MapRepository{})
+func WithDefaultLogger() Option {
+	return WithLogger(slog.Default())
 }
 
 func WithContextRoleExtractor(extractor ContextRoleExtractor) Option {
@@ -128,23 +118,5 @@ func WithRole(name string, ps ...Policy) Option {
 			name:     name,
 			policies: ps,
 		})(o)
-	}
-}
-
-func WithOmnipotentRole(name string) Option {
-	return WithCustomRole(&omnipotentRole{name: name})
-}
-
-func WithImpotentRole(name string) Option {
-	return WithCustomRole(&impotentRole{name: name})
-}
-
-func WithListener(l Listener) Option {
-	return func(o *options) error {
-		if l == nil {
-			return errors.New("cannot use a <nil> event listener")
-		}
-		o.listeners = append(o.listeners, l)
-		return nil
 	}
 }

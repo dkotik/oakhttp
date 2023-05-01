@@ -1,4 +1,4 @@
-package oakrbac
+package oakpolicy
 
 import (
 	"fmt"
@@ -7,8 +7,8 @@ import (
 )
 
 func TestPolicyReflection(t *testing.T) {
-	expectedName := "github.com/dkotik/oakacs/oakrbac.AllowEverything"
-	p := Policy(AllowEverything)
+	expectedName := "github.com/dkotik/oakacs/oakpolicy.AllowAll"
+	p := Policy(AllowAll)
 
 	n := p.Name()
 	if n != expectedName {
@@ -16,13 +16,13 @@ func TestPolicyReflection(t *testing.T) {
 	}
 
 	f := p.File()
-	expectedSuffix := "oakacs/oakrbac/policy.go"
+	expectedSuffix := "oakacs/oakpolicy/oakpolicy.go"
 	if !strings.HasSuffix(f, expectedSuffix) {
 		t.Fatalf("policy file %q does not end with %q", f, expectedSuffix)
 	}
 
 	l := p.Line()
-	expectedLine := 114
+	expectedLine := 97
 	if l != expectedLine {
 		t.Fatalf("policy line `%d` did not match `%d`", l, expectedLine)
 	}
