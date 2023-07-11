@@ -1,5 +1,11 @@
 /*
-Package oakclient provides a secure HTTP client.
+
+Package oakclient provides a more secure standard HTTP client.
+
+Higher security is achieved by setting short reasonable timeouts. Default HTTP client [leaks go routines][read-response] if the `response.Body` is not fully read and closed on **every** request or if the server hangs the connection or responds slowly.
+
+[read-response]: https://manishrjain.com/must-close-golang-http-response
+
 */
 package oakclient
 

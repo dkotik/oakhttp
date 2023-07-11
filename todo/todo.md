@@ -7,7 +7,9 @@ Your services should have a `/server` package that includes all the database plu
 # Primary
 
 - [ ] remove alike oakwords
+- [ ] consider using https://github.com/jetpack-io/typeid or UUIDv7 for session store, but not for session ID
 - [ ] is `go get cuelang.org/go/pkg/uuid@v0.4.0` better UUID package?
+- [ ] may need Go 1.20+ fast string to byte conversion and back: https://github.com/gofiber/fiber/pull/2468/files
 - [ ] consider simpler Permissions matching to map[string]string
   - allow domain:glob=\* id:any forum:regex=wowza
 
@@ -22,3 +24,4 @@ Your services should have a `/server` package that includes all the database plu
   - [ ] https://github.com/Acebond/session/blob/main/session.go
 - [ ] Study passwordless:
     - [ ] https://github.com/teamhanko/hanko
+- [ ] Neat password generation library, including some nice word lists: https://git.sr.ht/~jamesponddotco/acopw-go

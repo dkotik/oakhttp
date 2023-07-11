@@ -14,5 +14,5 @@ func TestURLToken(t *testing.T) {
 	if len(token) < 36 {
 		t.Fatal("generated token too small")
 	}
-	t.Fatal(token)
+	// t.Fatal(token)
 }

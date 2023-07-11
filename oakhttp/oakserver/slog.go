@@ -4,11 +4,25 @@ import (
 	"context"
 	"math"
 	"os"
+	"runtime/debug"
 	"time"
 
 	"github.com/lmittmann/tint"
 	"golang.org/x/exp/slog"
 )
+
+func vcsCommit() string {
+	info, ok := debug.ReadBuildInfo()
+	if ok {
+		for _, kv := range info.Settings {
+			switch kv.Key {
+			case "vcs.revision":
+				return kv.Value
+			}
+		}
+	}
+	return "<unknown>"
+}
 
 type tracingHandler struct {
 	slog.Handler
@@ -28,11 +42,14 @@ func NewTracingHandler(h slog.Handler) slog.Handler {
 }
 
 func NewDebugLogger() *slog.Logger {
-	return slog.New(NewTracingHandler(tint.Options{
-		// Level:      slog.LevelDebug,
-		Level:      -math.MaxInt, // log everything
-		TimeFormat: time.Kitchen,
-	}.NewHandler(os.Stderr)))
+	return slog.New(NewTracingHandler(
+		tint.NewHandler(os.Stderr, &tint.Options{
+			// Level:      slog.LevelDebug,
+			Level:      slog.Level(-math.MaxInt), // log everything
+			TimeFormat: time.Kitchen,
+		}))).With(
+		slog.String("commit", vcsCommit()),
+	)
 }
 
 type slogAdaptor struct {

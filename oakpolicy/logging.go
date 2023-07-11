@@ -22,14 +22,14 @@ func Log(l *slog.Logger, p Policy) Policy {
 				"allowed by policy",
 				slog.String("action", string(a)),
 				slog.Any("policy", p),
-				slog.String("resource", r.DomainPath().String()),
+				slog.Any("resource", r.DomainPath()),
 			)
 		} else if errors.Is(err, Deny) {
 			l.ErrorCtx(ctx,
 				"denied by policy",
 				slog.String("action", string(a)),
 				slog.Any("policy", p),
-				slog.String("resource", r.DomainPath().String()),
+				slog.Any("resource", r.DomainPath()),
 			)
 		}
 		return err
@@ -51,7 +51,7 @@ func LogAllowedActions(l *slog.Logger, level slog.Level, p Policy) Policy {
 				"allowed by policy",
 				slog.String("action", string(a)),
 				slog.Any("policy", p),
-				slog.String("resource", r.DomainPath().String()),
+				slog.Any("resource", r.DomainPath()),
 			)
 		}
 		return err
@@ -73,7 +73,7 @@ func LogDeniedActions(l *slog.Logger, level slog.Level, p Policy) Policy {
 				"denied by policy",
 				slog.String("action", string(a)),
 				slog.Any("policy", p),
-				slog.String("resource", r.DomainPath().String()),
+				slog.Any("resource", r.DomainPath()),
 			)
 		}
 		return err

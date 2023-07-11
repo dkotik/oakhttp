@@ -2,15 +2,14 @@ package oakrbac
 
 import (
 	"errors"
-	"fmt"
 
 	"golang.org/x/exp/slog"
 )
 
 type policySet struct {
-	ForRole  string
-	Policies []Policy
-	Silent   bool
+	ForRole string
+	// Policies []oakpolicy.Policy
+	Silent bool
 }
 
 type options struct {
@@ -41,11 +40,11 @@ func WithDefaultOptions() Option {
 				return err
 			}
 		}
-		if o.roleRepository == nil {
-			if err = WithListRoleRepository()(o); err != nil {
-				return err
-			}
-		}
+		// if o.roleRepository == nil {
+		// 	if err = WithListRoleRepository()(o); err != nil {
+		// 		return err
+		// 	}
+		// }
 		if o.contextRoleExtractor == nil {
 			if err = WithContextRoleExtractor(RoleNameFromContext)(o); err != nil {
 				return err
@@ -85,38 +84,38 @@ func WithContextRoleExtractor(extractor ContextRoleExtractor) Option {
 	}
 }
 
-func WithCustomRole(r Role) Option {
-	return func(o *options) error {
-		if r == nil {
-			return errors.New("cannot use a <nil> role")
-		}
-		name := r.Name()
-		if name == "" {
-			return errors.New("cannot use an empty role name")
-		}
-		// for _, role := range o.roles {
-		// 	if name == role.Name() {
-		// 		return fmt.Errorf("role names must be unique: %s", name)
-		// 	}
-		// }
-		o.roles = append(o.roles, r)
-		return nil
-	}
-}
+// func WithCustomRole(r Role) Option {
+// 	return func(o *options) error {
+// 		if r == nil {
+// 			return errors.New("cannot use a <nil> role")
+// 		}
+// 		name := r.Name()
+// 		if name == "" {
+// 			return errors.New("cannot use an empty role name")
+// 		}
+// 		// for _, role := range o.roles {
+// 		// 	if name == role.Name() {
+// 		// 		return fmt.Errorf("role names must be unique: %s", name)
+// 		// 	}
+// 		// }
+// 		o.roles = append(o.roles, r)
+// 		return nil
+// 	}
+// }
 
-func WithRole(name string, ps ...Policy) Option {
-	return func(o *options) error {
-		if len(ps) == 0 {
-			return fmt.Errorf("role %q must incluse at least one policy", name)
-		}
-		for _, policy := range ps {
-			if policy == nil {
-				return fmt.Errorf("role %q cannot use a <nil> policy", name)
-			}
-		}
-		return WithCustomRole(&basicRole{
-			name:     name,
-			policies: ps,
-		})(o)
-	}
-}
+// func WithRole(name string, ps ...oakpolicy.Policy) Option {
+// 	return func(o *options) error {
+// 		if len(ps) == 0 {
+// 			return fmt.Errorf("role %q must incluse at least one policy", name)
+// 		}
+// 		for _, policy := range ps {
+// 			if policy == nil {
+// 				return fmt.Errorf("role %q cannot use a <nil> policy", name)
+// 			}
+// 		}
+// 		return WithCustomRole(&basicRole{
+// 			name:     name,
+// 			policies: ps,
+// 		})(o)
+// 	}
+// }

@@ -93,7 +93,9 @@ func WithDefaultOptions() Option {
 			}
 		}
 		if o.Logger == nil {
-			if err = WithLogger(slog.Default())(o); err != nil {
+			if err = WithLogger(slog.Default().With(
+				slog.String("commit", vcsCommit()),
+			))(o); err != nil {
 				return err
 			}
 		}

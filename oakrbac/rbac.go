@@ -54,13 +54,20 @@ import (
 	"fmt"
 )
 
+// ErrInvalidContext indicates that a context does not include a role that can be retrieved using the package context key. If you see this error, you probably forgot to inject the role using either [ContextWithRole] early in the execution path. This is typically done using a middleware function like [rbac.ContextMiddleWare].
+var ErrInvalidContext = errors.New("role absent in context chain")
+
+// var ErrRoleNotFound = &oakpolicy.AuthorizationError{
+// 	cause: errors.New("desired role not found"),
+// }
+
 // RBAC is a simple Role Based Access Control system.
 type RBAC struct {
 	// policyNames          map[*Policy]string
 	// create a separate logger for each policy!
-	policies             []Policy
+	// policies             []Policy
 	contextRoleExtractor ContextRoleExtractor
-	listeners            []Listener
+	// listeners            []Listener
 }
 
 // New builds an [RBAC] using provided [Option] set.
@@ -70,14 +77,14 @@ func New(withOptions ...Option) (rbac *RBAC, err error) {
 		withOptions,
 		WithDefaultOptions(),
 		func(o *options) (err error) { // validate
-			for _, r := range o.roles {
-				if err = o.roleRepository.AddRole(r); err != nil {
-					return err
-				}
-			}
-			if o.roleRepository.CountRoles() == 0 {
-				return errors.New("at least one role is required")
-			}
+			// for _, r := range o.roles {
+			// 	if err = o.roleRepository.AddRole(r); err != nil {
+			// 		return err
+			// 	}
+			// }
+			// if o.roleRepository.CountRoles() == 0 {
+			// 	return errors.New("at least one role is required")
+			// }
 			return nil
 		},
 	) {
@@ -86,9 +93,9 @@ func New(withOptions ...Option) (rbac *RBAC, err error) {
 		}
 	}
 	return &RBAC{
-		roleRepository:       o.roleRepository,
+		// roleRepository:       o.roleRepository,
 		contextRoleExtractor: o.contextRoleExtractor,
-		listeners:            o.listeners,
+		// listeners:            o.listeners,
 	}, nil
 }
 

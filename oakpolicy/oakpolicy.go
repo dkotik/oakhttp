@@ -10,10 +10,6 @@ import (
 	"golang.org/x/exp/slog"
 )
 
-/*
-  RBAC is not even needed! - build it out of this package
-*/
-
 type (
 	// Policy returns [Allow] sentinel error if the session is permitted to interact with the context.
 	// Policy returns [Deny] sentinel error to interrupt the matching loop.

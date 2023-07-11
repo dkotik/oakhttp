@@ -17,11 +17,6 @@ var (
 
 	ErrNilPolicy       = errors.New("a policy set contains an uninitialized <nil> Policy")
 	ErrEmptyPolicyList = errors.New("cannot iterate over an empty policy list")
-	// ErrInvalidContext indicates that a context does not include a role that can be retrieved using the package context key. If you see this error, you probably forgot to inject the role using either [ContextWithRole] early in the execution path. This is typically done using a middleware function like [rbac.ContextMiddleWare].
-	ErrInvalidContext = errors.New("access control absent in context chain")
-	ErrRoleNotFound   = &AuthorizationError{
-		cause: errors.New("desired role not found"),
-	}
 )
 
 type denyError struct{}
