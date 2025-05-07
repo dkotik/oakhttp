@@ -2,28 +2,52 @@ package oakhttp
 
 import (
 	"context"
-	"io"
 	"net/http"
+
+	"golang.org/x/exp/slog"
 )
 
-type Handler func(w http.ResponseWriter, r *http.Request) error
+type Handler interface {
+	ServeHyperText(http.ResponseWriter, *http.Request) error
+}
+
+type HandlerFunc func(http.ResponseWriter, *http.Request) error
+
+func (f HandlerFunc) ServeHyperText(w http.ResponseWriter, r *http.Request) error {
+	return f(w, r)
+}
+
+func (f HandlerFunc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if herr := f(w, r); herr != nil {
+		code, err := UnwrapError(herr)
+		logError(slog.Default(), err, code, r)
+		writeError(w, err, code)
+	}
+}
 
 type Middleware func(Handler) Handler
 
-type Encoder func(http.ResponseWriter, any) error
+// ApplyMiddleware applies [Middleware] in reverse to preserve logical order.
+func ApplyMiddleware(h Handler, mws []Middleware) Handler {
+	for i := len(mws) - 1; i >= 0; i-- {
+		h = mws[i](h)
+	}
+	return h
+}
 
-type Decoder func(any, io.Reader) error
+type DomainRequest[T any, V ValidatableNormalizable[T]] func(context.Context, V) error
 
-type RequestFactory[T any, P ValidatableNormalizable[T]] func(
-	w http.ResponseWriter,
-	r *http.Request,
-) (P, error)
+type DomainRequestResponse[T any, V ValidatableNormalizable[T], O any] func(context.Context, V) (O, error)
 
-type DomainRequest[T any, P ValidatableNormalizable[T]] func(context.Context, P) error
+// ValidatableNormalizable constrains a domain request. Validation errors will be wrapped as InvalidRequestError by the adapter.
+type ValidatableNormalizable[T any] interface {
+	*T
+	Validate() error
+}
 
-type DomainRequestResponse[T any, P ValidatableNormalizable[T], O any] func(context.Context, P) (O, error)
-
-type Cache interface {
-	Set(ctx context.Context, key, value string) (err error)
-	Get(ctx context.Context, key string) (value string, err error)
+func NewRedirect(URL string, statusCode int) HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) error {
+		http.Redirect(w, r, URL, statusCode)
+		return nil
+	}
 }

@@ -1,191 +1,273 @@
 package oakhttp
 
 import (
-	_ "embed"
+	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"html/template"
+	"io"
 	"net/http"
-	"runtime"
 
 	"golang.org/x/exp/slog"
 )
 
-//go:embed error.html
-var ErrorTemplate string
+func LogError(l *slog.Logger, err error, r *http.Request) {
+	code, unwrapped := UnwrapError(err)
+	logError(l, unwrapped, code, r)
+}
+
+func logError(l *slog.Logger, err error, code int, r *http.Request) {
+	l.Log(
+		r.Context(),
+		slog.LevelError,
+		"HTTP request failed",
+		slog.Int("code", code),
+		slog.Any("error", err),
+		slog.Any("address", r.RemoteAddr),
+		slog.Group("request",
+			slog.String("host", r.URL.Hostname()),
+			slog.String("path", r.URL.Path),
+			slog.String("method", r.Method),
+		),
+	)
+}
 
 type Error interface {
 	error
-	HTTPStatusCode() int
+	HyperTextStatusCode() int
 }
 
-type ErrorHandler func(http.ResponseWriter, *http.Request, error)
-
-func NewErrorHandlerMiddleware(h ErrorHandler) Middleware {
-	if h == nil {
-		h = NewErrorHandlerJSON(slog.Default())
+func UnwrapError(err error) (code int, unwrapped error) {
+	var httpError Error
+	if errors.As(err, &httpError) {
+		return httpError.HyperTextStatusCode(), httpError
 	}
-	return func(wrapped Handler) Handler {
-		return func(w http.ResponseWriter, r *http.Request) error {
-			if err := wrapped(w, r); err != nil {
-				h(w, r, err)
-			}
-			return nil
-		}
-	}
+	return http.StatusInternalServerError, err
 }
 
-func NewErrorHandlerJSON(l *slog.Logger) ErrorHandler {
-	if l == nil {
-		l = slog.Default()
-	}
-	return func(w http.ResponseWriter, r *http.Request, err error) {
-		if err == nil {
-			return
-		}
-		l.ErrorCtx(r.Context(), "OakHTTP request failed", slog.Any("error", err))
-		w.Header().Set("Content-Type", "application/json")
+type errorHandler struct {
+	next   Handler
+	logger *slog.Logger
+}
 
-		var httpError Error
-		if errors.As(err, &httpError) {
-			w.WriteHeader(httpError.HTTPStatusCode())
-		} else {
-			w.WriteHeader(http.StatusInternalServerError)
+func NewErrorHandler(logger *slog.Logger) Middleware {
+	return func(next Handler) Handler {
+		if next == nil {
+			panic("error handler given a <nil> handler")
 		}
-
-		multi, ok := err.(interface {
-			Unwrap() []error // multi error
-		})
-
-		if ok {
-			err = json.NewEncoder(w).Encode(multi.Unwrap())
-		} else {
-			err = json.NewEncoder(w).Encode(err)
+		if logger == nil {
+			logger = slog.Default()
 		}
-
-		if err != nil { // encoding failed
-			l.ErrorCtx(r.Context(), "OakHTTP error handler encoder failed", slog.Any("error", err))
-		}
+		return &errorHandler{next: next, logger: logger}
 	}
 }
 
-func NewErrorHandlerHTML(l *slog.Logger, t *template.Template) ErrorHandler {
-	if l == nil {
-		l = slog.Default()
+func (e *errorHandler) ServeHyperText(
+	w http.ResponseWriter,
+	r *http.Request,
+) error {
+	nerr := e.next.ServeHyperText(w, r)
+	if nerr == nil {
+		return nil
 	}
-	if t == nil {
-		t = template.Must(template.New("error").Parse(`
-<html>
-<head>
-<title>Error Encountered</title>
-<style type=text/css>
-</style>
-</head>
+	code, err := UnwrapError(nerr)
+	logError(e.logger, err, code, r)
+	writeError(w, err, code)
+	return nil
+}
 
-<body>
-  <h1>Server Error</h1>
-  <p>{{.}}</p>
-  <p>Server failed to complete your request. If you believe this is a mistake, please contact support.</p>
-</body>
-</html>
-    `))
-	}
+type errorHandlerWithTemplate struct {
+	next     Handler
+	logger   *slog.Logger
+	template *template.Template
+}
 
-	return func(w http.ResponseWriter, r *http.Request, err error) {
-		if err == nil {
-			return
+func NewErrorHandlerWithTemplate(logger *slog.Logger, t *template.Template) Middleware {
+	return func(next Handler) Handler {
+		if next == nil {
+			panic("error handler with template given a <nil> handler")
 		}
-		l.Error("OakHTTP request failed", slog.Any("error", err))
-		w.Header().Set("Content-Type", "text/html")
-
-		var httpError Error
-		if errors.As(err, &httpError) {
-			w.WriteHeader(httpError.HTTPStatusCode())
-			err = t.Execute(w, httpError)
-		} else {
-			w.WriteHeader(http.StatusInternalServerError)
-			err = t.Execute(w, err)
+		if t == nil {
+			panic("error handler with template given a <nil> template")
 		}
-
-		if err != nil { // encoding failed
-			l.Error("OakHTTP error handler encoder failed", slog.Any("error", err))
+		if logger == nil {
+			logger = slog.Default()
 		}
+		return &errorHandlerWithTemplate{next: next, logger: logger, template: t}
 	}
 }
 
-type NotFoundError struct {
-	resource string
+func (e *errorHandlerWithTemplate) ServeHyperText(
+	w http.ResponseWriter,
+	r *http.Request,
+) error {
+	nerr := e.next.ServeHyperText(w, r)
+	if nerr == nil {
+		return nil
+	}
+	code, err := UnwrapError(nerr)
+	logError(e.logger, err, code, r)
+	var b = &bytes.Buffer{}
+	if err = e.template.Execute(b, struct {
+		Code  int
+		Error string
+	}{
+		Code:  code,
+		Error: err.Error(),
+	}); err != nil {
+		return err
+	}
+	w.Header().Set("Context-Type", "text/html")
+	w.WriteHeader(code)
+	_, err = io.Copy(w, b)
+	return err
 }
 
-func NewNotFoundError(resource string) *NotFoundError {
-	return &NotFoundError{resource: resource}
+type errorHandlerJSON struct {
+	next   Handler
+	logger *slog.Logger
 }
 
-func (e *NotFoundError) HTTPStatusCode() int {
+func NewJSONErrorHandler(logger *slog.Logger) Middleware {
+	return func(next Handler) Handler {
+		if next == nil {
+			panic("JSON error handler given a <nil> handler")
+		}
+		if logger == nil {
+			logger = slog.Default()
+		}
+		return &errorHandlerJSON{next: next, logger: logger}
+	}
+}
+
+func (e *errorHandlerJSON) ServeHyperText(
+	w http.ResponseWriter,
+	r *http.Request,
+) error {
+	nerr := e.next.ServeHyperText(w, r)
+	if nerr == nil {
+		return nil
+	}
+	code, err := UnwrapError(nerr)
+	logError(e.logger, err, code, r)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	return json.NewEncoder(w).Encode(struct {
+		Error string
+	}{err.Error()})
+}
+
+type notFoundError struct {
+	cause error
+}
+
+func NewNotFoundError(cause error) error {
+	return &notFoundError{cause: cause}
+}
+
+func (e *notFoundError) Error() string {
+	return http.StatusText(http.StatusNotFound)
+}
+
+func (e *notFoundError) HyperTextStatusCode() int {
 	return http.StatusNotFound
 }
 
-func (e *NotFoundError) Error() string {
-	return "resource \"" + e.resource + "\" was not found"
-}
-
-func NewPanicRecoveryMiddleware(next Handler) Handler {
-	return func(w http.ResponseWriter, r *http.Request) (err error) {
-		defer func() {
-			if recovery := recover(); recovery != nil {
-				buf := make([]byte, 10<<10)
-				n := runtime.Stack(buf, false)
-				err = &PanicError{
-					cause:      recovery,
-					stackTrace: buf[:n],
-				}
-			}
-		}()
-		return next(w, r)
+func (e *notFoundError) LogValue() slog.Value {
+	if e.cause == nil {
+		slog.StringValue(e.Error())
 	}
+	return slog.StringValue("not found: " + e.cause.Error())
 }
 
-// NewPanicRecoveryHandler protects handlers from panics
-// by converting them to errors.
-//
-// See another variant: https://github.com/go-chi/chi/blob/v5.0.8/middleware/recoverer.go
-func NewPanicRecoveryHandler(next Handler) Handler {
-	return func(w http.ResponseWriter, r *http.Request) (err error) {
-		defer func() {
-			if recovery := recover(); recovery != nil {
-				// TODO: would debug.Stack() be better?
-				buf := make([]byte, 10<<10)
-				n := runtime.Stack(buf, false)
-				err = &PanicError{
-					cause:      recovery,
-					stackTrace: buf[:n],
-				}
-			}
-		}()
-		err = next(w, r)
-		return
+type accessDeniedError struct {
+	cause error
+}
+
+func NewAccessDeniedError(cause error) error {
+	return &accessDeniedError{cause: cause}
+}
+
+func (e *accessDeniedError) Error() string {
+	return http.StatusText(http.StatusForbidden)
+}
+
+func (e *accessDeniedError) HyperTextStatusCode() int {
+	return http.StatusForbidden
+}
+
+func (e *accessDeniedError) LogValue() slog.Value {
+	if e.cause == nil {
+		slog.StringValue(e.Error())
 	}
+	return slog.StringValue("access denied: " + e.cause.Error())
 }
 
-type PanicError struct {
-	cause      any
-	stackTrace []byte
+func IsAccessDeniedError(err error) bool {
+	var httpError Error
+	return errors.As(err, &httpError) && httpError.HyperTextStatusCode() == http.StatusForbidden
 }
 
-func (e *PanicError) HTTPStatusCode() int {
-	return http.StatusInternalServerError
+type InvalidRequestError struct {
+	error
 }
 
-func (e *PanicError) Error() string {
-	return http.StatusText(http.StatusInternalServerError)
+func NewInvalidRequestError(fromError error) *InvalidRequestError {
+	return &InvalidRequestError{fromError}
 }
 
-func (e *PanicError) LogValue() slog.Value {
-	return slog.GroupValue(
-		slog.String("message", "process crashed: panic"),
-		slog.String("stack_trace", fmt.Sprintf("%s", e.stackTrace)),
-		slog.Any("cause", e.cause),
-		slog.Int("status_code", e.HTTPStatusCode()),
-	)
+func (e *InvalidRequestError) Error() string {
+	return "invalid request: " + e.error.Error()
+}
+
+func (e *InvalidRequestError) Unwrap() error {
+	return e.error
+}
+
+func (e *InvalidRequestError) HyperTextStatusCode() int {
+	return http.StatusUnprocessableEntity
+}
+
+type methodNotAllowedError struct {
+	method string
+}
+
+func NewMethodNotAllowedError(method string) Error {
+	return &methodNotAllowedError{method: method}
+}
+
+func (e *methodNotAllowedError) Error() string {
+	if e.method == "" {
+		return "unspecified method is not allowed"
+	}
+	return "method not allowed: " + e.method
+}
+
+func (e *methodNotAllowedError) HyperTextStatusCode() int {
+	return http.StatusMethodNotAllowed
+}
+
+// ObfuscatedError presents itself as a missing resource. It is useful for hiding certain API endpoints, like the health check, from un-authenticated requests. The real error is always logged using the [slog.Value] interface.
+type ObfuscatedError struct {
+	real error
+}
+
+func NewObfuscatedError(real error) error {
+	return &ObfuscatedError{real: real}
+}
+
+func (e *ObfuscatedError) Unwrap() error {
+	return e.real
+}
+
+func (e *ObfuscatedError) Error() string {
+	return http.StatusText(http.StatusNotFound)
+}
+
+func (e *ObfuscatedError) HyperTextStatusCode() int {
+	return http.StatusNotFound
+}
+
+func (e *ObfuscatedError) LogValue() slog.Value {
+	return slog.StringValue("obfuscated error: " + e.real.Error())
 }

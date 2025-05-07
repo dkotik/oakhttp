@@ -6,7 +6,6 @@ Your services should have a `/server` package that includes all the database plu
 
 # Primary
 
-- [ ] remove alike oakwords
 - [ ] consider using https://github.com/jetpack-io/typeid or UUIDv7 for session store, but not for session ID
 - [ ] is `go get cuelang.org/go/pkg/uuid@v0.4.0` better UUID package?
 - [ ] may need Go 1.20+ fast string to byte conversion and back: https://github.com/gofiber/fiber/pull/2468/files
