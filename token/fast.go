@@ -1,4 +1,4 @@
-package oaktoken
+package token
 
 import (
 	"math/rand"

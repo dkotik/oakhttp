@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/dkotik/oakacs/oakhttp"
-	"github.com/dkotik/oakacs/oaktoken"
+	"github.com/dkotik/oakhttp/token"
 )
 
 type ContextFactory func(net.Listener) context.Context
@@ -261,7 +261,7 @@ func WithTraceIDGenerator(generator func() string) Option {
 func WithDefaultTraceIDGenerator() Option {
 	return func(o *options) error {
 		if o.ContextFactory == nil {
-			generator, err := oaktoken.New()
+			generator, err := token.New()
 			if err != nil {
 				return fmt.Errorf("cannot initialize token factory: %w", err)
 			}

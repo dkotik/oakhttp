@@ -14,33 +14,23 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 )
 
 type Turnstile struct {
-	client         *http.Client
-	secretKey      string
-	endpoint       string
-	hostname       string
-	allowedActions []string
+	client    *http.Client
+	secretKey string
+	endpoint  string
+	hostname  string
 }
 
-func (t *Turnstile) IsAllowedAction(name string) bool {
-	for _, action := range t.allowedActions {
-		if action == name {
-			return true
-		}
-	}
-	return false
-}
-
-func (t *Turnstile) VerifyHumanityToken(
+func (t *Turnstile) Challenge(
 	ctx context.Context,
 	clientResponseToken string,
 	clientIPAddress string,
+	action string,
 ) (
 	userData string,
 	err error,
@@ -77,11 +67,11 @@ func (t *Turnstile) VerifyHumanityToken(
 	}
 
 	if r.Hostname != t.hostname {
-		return "", errors.New("turnstile response and request hostnames do not match")
+		return "", fmt.Errorf("hostnames %q does not match %q", r.Hostname, t.hostname)
 	}
 
-	if !t.IsAllowedAction(r.Action) {
-		return "", errors.New("turnstile response action is not allowed")
+	if r.Action != action {
+		return "", fmt.Errorf("response action %q does not match %q", r.Action, action)
 	}
 
 	// cData is customer payload that can be used to attach customer data to the challenge throughout its issuance and which is returned upon validation. This can only contain up to 255 alphanumeric characters including _ and -.
@@ -93,13 +83,10 @@ func New(withOptions ...Option) (*Turnstile, error) {
 	var err error
 	for _, option := range append(
 		withOptions,
-		WithDefaultOptions(),
-		func(o *options) error { // validate
-			if len(o.AllowedActions) == 0 {
-				return errors.New("at least one allowed action is required")
-			}
-			return nil
-		},
+		WithDefaultHTTPClient(),
+		WithDefaultEndpoint(),
+		WithDefaultHostname(),
+		WithDefaultSecretKey(),
 	) {
 		if err = option(o); err != nil {
 			return nil, fmt.Errorf("cannot initialize Cloudflare Turnstile verifier: %w", err)
@@ -107,10 +94,9 @@ func New(withOptions ...Option) (*Turnstile, error) {
 	}
 
 	return &Turnstile{
-		client:         o.HTTPClient,
-		secretKey:      o.SecretKey,
-		endpoint:       o.Endpoint,
-		hostname:       o.Hostname,
-		allowedActions: o.AllowedActions,
+		client:    o.HTTPClient,
+		secretKey: o.SecretKey,
+		endpoint:  o.Endpoint,
+		hostname:  o.Hostname,
 	}, nil
 }

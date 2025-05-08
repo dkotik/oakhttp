@@ -1,15 +1,15 @@
-package oakhttp
+package server
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"time"
 
-	"github.com/dkotik/oakacs/oaktoken"
-	"golang.org/x/exp/slog"
+	"github.com/dkotik/oakhttp/token"
 )
 
 type ContextFactory func(net.Listener) context.Context
@@ -239,7 +239,7 @@ func WithTraceIDGenerator(generator func() string) Option {
 func WithDefaultTraceIDGenerator() Option {
 	return func(o *options) error {
 		if o.ContextFactory == nil {
-			generator, err := oaktoken.New()
+			generator, err := token.New()
 			if err != nil {
 				return fmt.Errorf("cannot initialize token factory: %w", err)
 			}

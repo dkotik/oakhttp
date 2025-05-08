@@ -1,29 +1,86 @@
 package oakhttp
 
 import (
-	"bytes"
-	"encoding/json"
-	"errors"
-	"html/template"
+	"cmp"
 	"io"
+	"log/slog"
 	"net/http"
 
-	"golang.org/x/exp/slog"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
+	"golang.org/x/text/language"
 )
 
-func LogError(l *slog.Logger, err error, r *http.Request) {
-	code, unwrapped := UnwrapError(err)
-	logError(l, unwrapped, code, r)
+type Error struct {
+	StatusCode  int
+	Title       *i18n.LocalizeConfig
+	Description *i18n.LocalizeConfig
+	Message     *i18n.LocalizeConfig
+	Cause       error
 }
 
-func logError(l *slog.Logger, err error, code int, r *http.Request) {
-	l.Log(
+func (e Error) GetHyperTextStatusCode() int {
+	return e.StatusCode
+}
+
+func (e Error) Unwrap() error {
+	return e.Cause
+}
+
+func (e Error) Error() string {
+	if e.Cause == nil {
+		return http.StatusText(e.StatusCode)
+	}
+	return http.StatusText(e.StatusCode) + ": " + e.Cause.Error()
+}
+
+func (e Error) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Int("status_code", e.StatusCode),
+		slog.String("message", e.Error()),
+		slog.Any("cause", e.Cause),
+	)
+}
+
+type ErrorWithStatusCode interface {
+	GetHyperTextStatusCode() int
+}
+
+type ErrorHandler interface {
+	HandleError(http.ResponseWriter, *http.Request, error)
+}
+
+type ErrorHandlerFunc func(http.ResponseWriter, *http.Request, error)
+
+func (f ErrorHandlerFunc) HandleError(w http.ResponseWriter, r *http.Request, err error) {
+	f(w, r, err)
+}
+
+type ErrorHandlerMiddleware interface {
+	WrapErrorHandler(ErrorHandler) ErrorHandler
+}
+
+type ErrorRenderer interface {
+	RenderError(io.Writer, Error) error
+}
+
+type errorHandler struct {
+	Renderer ErrorRenderer
+	Logger   *slog.Logger
+}
+
+func NewErrorHandler(r ErrorRenderer, logger *slog.Logger) ErrorHandler {
+	return errorHandler{
+		Renderer: r,
+		Logger:   cmp.Or(logger, slog.Default()),
+	}
+}
+
+func (h errorHandler) HandleError(w http.ResponseWriter, r *http.Request, err error) {
+	h.Logger.Log(
 		r.Context(),
 		slog.LevelError,
-		"HTTP request failed",
-		slog.Int("code", code),
-		slog.Any("error", err),
-		slog.Any("address", r.RemoteAddr),
+		err.Error(),
+		// slog.Any("details", err),
 		slog.Group("request",
 			slog.String("host", r.URL.Hostname()),
 			slog.String("path", r.URL.Path),
@@ -32,242 +89,38 @@ func logError(l *slog.Logger, err error, code int, r *http.Request) {
 	)
 }
 
-type Error interface {
-	error
-	HyperTextStatusCode() int
+type bufferedErrorHandler struct {
+	Next   ErrorHandler
+	Cache  map[int]map[language.Tag][]byte
+	Logger *slog.Logger
 }
 
-func UnwrapError(err error) (code int, unwrapped error) {
-	var httpError Error
-	if errors.As(err, &httpError) {
-		return httpError.HyperTextStatusCode(), httpError
-	}
-	return http.StatusInternalServerError, err
-}
+func NewBufferedErrorHandler(
+	b *i18n.Bundle,
+	r ErrorRenderer,
+	l *slog.Logger,
+	override ...Error,
+) interface {
+	ErrorHandler
+	ErrorHandlerMiddleware
+} {
+	// if len(override) == 0 {
+	// 	return NewErrorHandler(r, l)
+	// }
 
-type errorHandler struct {
-	next   Handler
-	logger *slog.Logger
-}
-
-func NewErrorHandler(logger *slog.Logger) Middleware {
-	return func(next Handler) Handler {
-		if next == nil {
-			panic("error handler given a <nil> handler")
-		}
-		if logger == nil {
-			logger = slog.Default()
-		}
-		return &errorHandler{next: next, logger: logger}
+	return bufferedErrorHandler{
+		Logger: cmp.Or(l, slog.Default()),
 	}
 }
 
-func (e *errorHandler) ServeHyperText(
-	w http.ResponseWriter,
-	r *http.Request,
-) error {
-	nerr := e.next.ServeHyperText(w, r)
-	if nerr == nil {
-		return nil
+func (h bufferedErrorHandler) HandleError(w http.ResponseWriter, r *http.Request, err error) {
+
+}
+
+func (h bufferedErrorHandler) WrapErrorHandler(e ErrorHandler) ErrorHandler {
+	return bufferedErrorHandler{
+		Next:   e, // TODO: cmp.Or(e, http.Error(w http.ResponseWriter, error string, code int))
+		Cache:  h.Cache,
+		Logger: h.Logger,
 	}
-	code, err := UnwrapError(nerr)
-	logError(e.logger, err, code, r)
-	writeError(w, err, code)
-	return nil
-}
-
-type errorHandlerWithTemplate struct {
-	next     Handler
-	logger   *slog.Logger
-	template *template.Template
-}
-
-func NewErrorHandlerWithTemplate(logger *slog.Logger, t *template.Template) Middleware {
-	return func(next Handler) Handler {
-		if next == nil {
-			panic("error handler with template given a <nil> handler")
-		}
-		if t == nil {
-			panic("error handler with template given a <nil> template")
-		}
-		if logger == nil {
-			logger = slog.Default()
-		}
-		return &errorHandlerWithTemplate{next: next, logger: logger, template: t}
-	}
-}
-
-func (e *errorHandlerWithTemplate) ServeHyperText(
-	w http.ResponseWriter,
-	r *http.Request,
-) error {
-	nerr := e.next.ServeHyperText(w, r)
-	if nerr == nil {
-		return nil
-	}
-	code, err := UnwrapError(nerr)
-	logError(e.logger, err, code, r)
-	var b = &bytes.Buffer{}
-	if err = e.template.Execute(b, struct {
-		Code  int
-		Error string
-	}{
-		Code:  code,
-		Error: err.Error(),
-	}); err != nil {
-		return err
-	}
-	w.Header().Set("Context-Type", "text/html")
-	w.WriteHeader(code)
-	_, err = io.Copy(w, b)
-	return err
-}
-
-type errorHandlerJSON struct {
-	next   Handler
-	logger *slog.Logger
-}
-
-func NewJSONErrorHandler(logger *slog.Logger) Middleware {
-	return func(next Handler) Handler {
-		if next == nil {
-			panic("JSON error handler given a <nil> handler")
-		}
-		if logger == nil {
-			logger = slog.Default()
-		}
-		return &errorHandlerJSON{next: next, logger: logger}
-	}
-}
-
-func (e *errorHandlerJSON) ServeHyperText(
-	w http.ResponseWriter,
-	r *http.Request,
-) error {
-	nerr := e.next.ServeHyperText(w, r)
-	if nerr == nil {
-		return nil
-	}
-	code, err := UnwrapError(nerr)
-	logError(e.logger, err, code, r)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	return json.NewEncoder(w).Encode(struct {
-		Error string
-	}{err.Error()})
-}
-
-type notFoundError struct {
-	cause error
-}
-
-func NewNotFoundError(cause error) error {
-	return &notFoundError{cause: cause}
-}
-
-func (e *notFoundError) Error() string {
-	return http.StatusText(http.StatusNotFound)
-}
-
-func (e *notFoundError) HyperTextStatusCode() int {
-	return http.StatusNotFound
-}
-
-func (e *notFoundError) LogValue() slog.Value {
-	if e.cause == nil {
-		slog.StringValue(e.Error())
-	}
-	return slog.StringValue("not found: " + e.cause.Error())
-}
-
-type accessDeniedError struct {
-	cause error
-}
-
-func NewAccessDeniedError(cause error) error {
-	return &accessDeniedError{cause: cause}
-}
-
-func (e *accessDeniedError) Error() string {
-	return http.StatusText(http.StatusForbidden)
-}
-
-func (e *accessDeniedError) HyperTextStatusCode() int {
-	return http.StatusForbidden
-}
-
-func (e *accessDeniedError) LogValue() slog.Value {
-	if e.cause == nil {
-		slog.StringValue(e.Error())
-	}
-	return slog.StringValue("access denied: " + e.cause.Error())
-}
-
-func IsAccessDeniedError(err error) bool {
-	var httpError Error
-	return errors.As(err, &httpError) && httpError.HyperTextStatusCode() == http.StatusForbidden
-}
-
-type InvalidRequestError struct {
-	error
-}
-
-func NewInvalidRequestError(fromError error) *InvalidRequestError {
-	return &InvalidRequestError{fromError}
-}
-
-func (e *InvalidRequestError) Error() string {
-	return "invalid request: " + e.error.Error()
-}
-
-func (e *InvalidRequestError) Unwrap() error {
-	return e.error
-}
-
-func (e *InvalidRequestError) HyperTextStatusCode() int {
-	return http.StatusUnprocessableEntity
-}
-
-type methodNotAllowedError struct {
-	method string
-}
-
-func NewMethodNotAllowedError(method string) Error {
-	return &methodNotAllowedError{method: method}
-}
-
-func (e *methodNotAllowedError) Error() string {
-	if e.method == "" {
-		return "unspecified method is not allowed"
-	}
-	return "method not allowed: " + e.method
-}
-
-func (e *methodNotAllowedError) HyperTextStatusCode() int {
-	return http.StatusMethodNotAllowed
-}
-
-// ObfuscatedError presents itself as a missing resource. It is useful for hiding certain API endpoints, like the health check, from un-authenticated requests. The real error is always logged using the [slog.Value] interface.
-type ObfuscatedError struct {
-	real error
-}
-
-func NewObfuscatedError(real error) error {
-	return &ObfuscatedError{real: real}
-}
-
-func (e *ObfuscatedError) Unwrap() error {
-	return e.real
-}
-
-func (e *ObfuscatedError) Error() string {
-	return http.StatusText(http.StatusNotFound)
-}
-
-func (e *ObfuscatedError) HyperTextStatusCode() int {
-	return http.StatusNotFound
-}
-
-func (e *ObfuscatedError) LogValue() slog.Value {
-	return slog.StringValue("obfuscated error: " + e.real.Error())
 }

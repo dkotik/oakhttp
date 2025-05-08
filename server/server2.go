@@ -1,3 +1,5 @@
+package server
+
 // signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 // go func() {
 //     <-sigs

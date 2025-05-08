@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/coreos/go-oidc"
-	"github.com/dkotik/oakacs/oaktoken"
+	"github.com/dkotik/oakhttp/token"
 	"golang.org/x/oauth2"
 )
 
@@ -20,7 +20,7 @@ type SessionAdapter func(
 
 type options struct {
 	SessionAdapter SessionAdapter
-	TokenFactory   oaktoken.Factory
+	TokenFactory   token.Factory
 	ClientID       string
 	ClientSecret   string
 	DiscoveryURL   string
@@ -39,8 +39,8 @@ func WithDefaultOptions() Option {
 			}
 		}()
 		if o.TokenFactory == nil {
-			// TODO: replace with oaktoken.NewURLToken(36) after next release tag.
-			o.TokenFactory, err = oaktoken.New()
+			// TODO: replace with token.NewURLToken(36) after next release tag.
+			o.TokenFactory, err = token.New()
 			if err != nil {
 				return fmt.Errorf("cannot create a token factory: %w", err)
 			}

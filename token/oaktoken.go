@@ -1,7 +1,7 @@
 /*
-Package oaktoken provides a secure random string factory that can be used for session or other types of tokens.
+Package token provides a secure random string factory that can be used for session or other types of tokens.
 */
-package oaktoken
+package token
 
 import (
 	"crypto/rand"
@@ -31,7 +31,7 @@ func New(withOptions ...Option) (Factory, error) {
 		},
 	) {
 		if err := option(o); err != nil {
-			return nil, fmt.Errorf("cannot initialize oaktoken factory: %w", err)
+			return nil, fmt.Errorf("cannot initialize token factory: %w", err)
 		}
 	}
 

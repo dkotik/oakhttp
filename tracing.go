@@ -2,10 +2,9 @@ package oakhttp
 
 import (
 	"context"
+	"log/slog"
 	"runtime/debug"
 	"sync"
-
-	"golang.org/x/exp/slog"
 )
 
 type contextKey struct{}

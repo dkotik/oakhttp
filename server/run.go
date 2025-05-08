@@ -1,17 +1,16 @@
-package oakhttp
+package server
 
 import (
 	"context"
 	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-
-	"golang.org/x/exp/slog"
 )
 
 func Run(ctx context.Context, withOptions ...Option) (err error) {
