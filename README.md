@@ -68,7 +68,9 @@ Logging can be approached in several different ways:
 2. Inside the policies themselves.
 3. At a higher level with request logs.
 
-## Interesting Access Control Projects
+## Other HTTP Security Projects
+
+- <https://github.com/imroc/req>
 
 ### Authorization
 

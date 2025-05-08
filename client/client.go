@@ -3,6 +3,12 @@ Package client provides a more secure standard HTTP client.
 
 Higher security is achieved by setting short reasonable timeouts. Default HTTP client [leaks go routines][read-response] if the `response.Body` is not fully read and closed on **every** request or if the server hangs the connection or responds slowly.
 
+## Default HTTP Client
+
+> Making things worse is the fact that a bare http.Client will use a default http.Transport called http.DefaultTransport, which is another global value that behaves the same way. So it is not simply enough to replace http.DefaultClient with &http.Client{}. (https://pkg.go.dev/github.com/hashicorp/go-cleanhttp#section-readme)
+
+TODO: Use Hashicorp's `go-cleanhttp` package to get true copies of http.Client{}.
+
 [read-response]: https://manishrjain.com/must-close-golang-http-response
 */
 package client
