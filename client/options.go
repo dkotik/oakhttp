@@ -1,4 +1,4 @@
-package oakclient
+package client
 
 import (
 	"errors"
@@ -21,31 +21,30 @@ type Option func(*options) error
 func WithTimeout(d time.Duration) Option {
 	return func(o *options) error {
 		if o.Timeout != 0 {
-			return errors.New("Timeout is already set")
+			return errors.New("timeout is already set")
 		}
 		if d < time.Second {
-			return errors.New("Timeout must be greater than one second")
+			return errors.New("timeout must be greater than one second")
 		}
 		if d > time.Minute*5 {
-			return errors.New("Timeout must be less than five minutes")
+			return errors.New("timeout must be less than five minutes")
 		}
 		o.Timeout = d
 		return nil
 	}
 }
 
-// WithKeepAlive sets [net.Dialer.KeepAlive].
-func WithKeepAlive(d time.Duration) Option {
+// WithKeepAliveTimeout sets [net.Dialer.KeepAlive].
+func WithKeepAliveTimeout(d time.Duration) Option {
 	return func(o *options) error {
 		if o.KeepAlive != 0 {
-			panic(o.KeepAlive)
-			return errors.New("KeepAlive is already set")
+			return errors.New("keep alive time out is already set")
 		}
 		if d < time.Second {
-			return errors.New("KeepAlive must be greater than one second")
+			return errors.New("keep alive time out must be greater than one second")
 		}
 		if d > time.Hour*24 {
-			return errors.New("KeepAlive must be less than a day")
+			return errors.New("keep alive time out must be less than a day")
 		}
 		o.KeepAlive = d
 		return nil
@@ -103,8 +102,8 @@ func WithExpectContinueTimeout(d time.Duration) Option {
 	}
 }
 
-// WithMaxConnsPerHost sets [http.Transport.MaxConnsPerHost].
-func WithMaxConnsPerHost(n int) Option {
+// WithConnectionLimit sets [http.Transport.MaxConnsPerHost].
+func WithConnectionLimit(n int) Option {
 	return func(o *options) error {
 		if o.MaxConnsPerHost != 0 {
 			return errors.New("MaxConnsPerHost is already set")
@@ -120,8 +119,8 @@ func WithMaxConnsPerHost(n int) Option {
 	}
 }
 
-// WithMaxIdleConnsPerHost sets [http.Transport.MaxIdleConnsPerHost].
-func WithMaxIdleConnsPerHost(n int) Option {
+// WithIdleConnectionLimitPerHost sets [http.Transport.MaxIdleConnsPerHost].
+func WithIdleConnectionLimitPerHost(n int) Option {
 	return func(o *options) error {
 		if o.MaxIdleConnsPerHost != 0 {
 			return errors.New("MaxIdleConnsPerHost is already set")

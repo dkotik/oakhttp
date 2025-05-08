@@ -1,4 +1,4 @@
-package oakclient
+package client
 
 import (
 	"fmt"
@@ -15,12 +15,12 @@ func WithDefaultOptions() Option {
 		}()
 
 		if o.MaxConnsPerHost == 0 {
-			if err = WithMaxConnsPerHost(20)(o); err != nil {
+			if err = WithConnectionLimit(20)(o); err != nil {
 				return err
 			}
 		}
 		if o.MaxIdleConnsPerHost == 0 {
-			if err = WithMaxIdleConnsPerHost(
+			if err = WithIdleConnectionLimitPerHost(
 				int(float32(o.MaxConnsPerHost)*.2) + 1,
 			)(o); err != nil {
 				return err
@@ -33,7 +33,7 @@ func WithDefaultOptions() Option {
 			}
 		}
 		if o.KeepAlive == 0 {
-			if err = WithKeepAlive(time.Second * 60)(o); err != nil {
+			if err = WithKeepAliveTimeout(time.Second * 60)(o); err != nil {
 				return err
 			}
 		}

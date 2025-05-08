@@ -1,4 +1,4 @@
-package oakclient
+package client
 
 import "testing"
 
