@@ -1,14 +1,12 @@
 <!DOCTYPE html>
-<html lang="{{ block "locale" . }en{{ end }}">
+<html lang="{{ or .LanguageTag "en" }}">
   <head>
     <meta charset="utf-8">
     <meta name="robots" content="noindex, follow">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ block "title" . }}Internal Server Error{{ end }}</title>
-    <meta name="description" content="{{ block "description" . }}
-      {{- . -}}
-    {{ end }}">
-    {{- template "scripts" . -}}
+    <title>{{ or .Title "Internal Server Error" }}</title>
+    <meta name="description" content="{{ .Description }}">
+    {{- block "head" . -}}
     <style media="all">
       body {
         color: {{ block "textColor" .}}#333{{ end }};
@@ -28,13 +26,20 @@
         background-color: {{ block "actionColor" .}}#0edd7a{{ end }};
       }
     </style>
+    {{- end -}}
   </head>
   <body>
     <article>
-      <h1>{{ template "title" . }}</h1>
-      <p>{{ template "description" . }}</p>
+      <h1>
+        {{ .Title }}
+        {{ with .KnowledgeCode }}
+          - {{ . }}
+        {{ end}}
+      </h1>
+      <p>{{ .Message }}</p>
+      <p>{{ .Description }}</p>
       {{- block "return" . -}}
-        <a href="#back" onclick="window.history.back()">go back</a>
+        <p><a href="#back" onclick="window.history.back()">go back</a></p>
       {{- end -}}
     </article>
   </body>

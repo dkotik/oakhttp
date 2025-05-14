@@ -35,7 +35,7 @@ type panicHandler struct {
 
 func NewPanicHandler(eh ErrorHandler) Middleware {
 	if eh == nil {
-		eh = NewErrorHandler(nil, nil)
+		eh = NewErrorHandler(nil, nil, nil)
 	}
 	return func(next http.Handler) http.Handler {
 		if next == nil {

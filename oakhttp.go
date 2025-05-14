@@ -1,8 +1,12 @@
 package oakhttp
 
 import (
+	"embed"
 	"net/http"
 )
+
+//go:embed templates
+var templates embed.FS
 
 type Middleware func(http.Handler) http.Handler
 
