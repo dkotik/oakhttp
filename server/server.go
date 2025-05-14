@@ -39,14 +39,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"golang.org/x/exp/slog"
+	"github.com/dkotik/oakhttp"
 )
 
 func Run(ctx context.Context, withOptions ...Option) (err error) {
@@ -70,6 +70,9 @@ func Run(ctx context.Context, withOptions ...Option) (err error) {
 			if o.Listener == nil {
 				return errors.New("cannot start a server without a network listener")
 			}
+			if o.Handler == nil {
+				return errors.New("service handler is nil")
+			}
 			return nil
 		},
 	) {
@@ -84,7 +87,6 @@ func Run(ctx context.Context, withOptions ...Option) (err error) {
 		}
 	}()
 
-	handler := o.Handler
 	contextFactory := o.ContextFactory
 	logger := o.Logger
 	server := &http.Server{
@@ -94,12 +96,9 @@ func Run(ctx context.Context, withOptions ...Option) (err error) {
 		WriteTimeout:      o.WriteTimeout,
 		IdleTimeout:       o.IdleTimeout,
 		MaxHeaderBytes:    o.MaxHeaderBytes,
-		Handler:           handler,
+		Handler:           o.Handler,
 		BaseContext:       contextFactory,
-		ErrorLog: log.New(&slogAdaptor{
-			level:  slog.LevelDebug,
-			logger: logger,
-		}, "server: ", log.LstdFlags),
+		ErrorLog:          oakhttp.NewSlogAdaptor(logger, slog.LevelDebug),
 		// TLSConfig *tls.Config // TODO: use Filippo's defaults?
 	}
 

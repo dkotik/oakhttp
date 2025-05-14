@@ -2,7 +2,13 @@ package oakhttp
 
 import (
 	"embed"
+	"log/slog"
+	"math"
 	"net/http"
+	"os"
+	"time"
+
+	"github.com/lmittmann/tint"
 )
 
 //go:embed templates
@@ -16,4 +22,15 @@ func ApplyMiddleware(h http.Handler, mws []Middleware) http.Handler {
 		h = mws[i](h)
 	}
 	return h
+}
+
+func NewDebugLogger() *slog.Logger {
+	return slog.New(NewTracingHandler(
+		tint.NewHandler(os.Stderr, &tint.Options{
+			// Level:      slog.LevelDebug,
+			Level:      slog.Level(-math.MaxInt), // log everything
+			TimeFormat: time.Kitchen,
+		}))).With(
+		slog.String("commit", vcsCommit()),
+	)
 }

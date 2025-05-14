@@ -9,11 +9,20 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/dkotik/oakacs/oakhttp"
+	"github.com/dkotik/oakhttp"
 	"github.com/dkotik/oakhttp/token"
 )
 
 type ContextFactory func(net.Listener) context.Context
+
+const (
+	DefaultReadTimeout       = time.Second * 2
+	DefaultReadHeaderTimeout = time.Second * 2
+	DefaultWriteTimeout      = time.Second * 2
+	DefaultIdleTimeout       = time.Second * 30
+	DefaultMaxHeaderBytes    = 1 << 8
+	DefaultPort              = 8080
+)
 
 type options struct {
 	TLSCertificateFile string
@@ -27,15 +36,13 @@ type options struct {
 	Listener           net.Listener
 	ContextFactory     ContextFactory
 	Handler            http.Handler
-	// ErrorHandler       oakhttp.ErrorHandler
 }
-
 type Option func(*options) error
 
 func WithDebugOptions() Option {
 	return func(o *options) (err error) {
 		if o.Logger == nil {
-			if err = WithLogger(NewDebugLogger())(o); err != nil {
+			if err = WithLogger(oakhttp.NewDebugLogger())(o); err != nil {
 				return err
 			}
 		}
@@ -52,32 +59,32 @@ func WithDefaultOptions() Option {
 	return func(o *options) (err error) {
 		defer func() {
 			if err != nil {
-				err = fmt.Errorf("cannot apply defaults: %w", err)
+				err = fmt.Errorf("cannot apply default setting: %w", err)
 			}
 		}()
 
 		if o.ReadTimeout == 0 {
-			if err = WithReadTimeout(time.Second * 2)(o); err != nil {
+			if err = WithReadTimeout(DefaultReadTimeout)(o); err != nil {
 				return err
 			}
 		}
 		if o.ReadHeaderTimeout == 0 {
-			if err = WithReadHeaderTimeout(time.Second * 2)(o); err != nil {
+			if err = WithReadHeaderTimeout(DefaultReadHeaderTimeout)(o); err != nil {
 				return err
 			}
 		}
 		if o.WriteTimeout == 0 {
-			if err = WithWriteTimeout(time.Second * 2)(o); err != nil {
+			if err = WithWriteTimeout(DefaultWriteTimeout)(o); err != nil {
 				return err
 			}
 		}
 		if o.IdleTimeout == 0 {
-			if err = WithIdleTimeout(time.Second * 30)(o); err != nil {
+			if err = WithIdleTimeout(DefaultIdleTimeout)(o); err != nil {
 				return err
 			}
 		}
 		if o.MaxHeaderBytes == 0 {
-			if err = WithMaxHeaderBytes(1 << 6)(o); err != nil {
+			if err = WithMaxHeaderBytes(DefaultMaxHeaderBytes)(o); err != nil {
 				return err
 			}
 		}
@@ -87,29 +94,13 @@ func WithDefaultOptions() Option {
 					return err
 				}
 			} else {
-				if err = WithAddress("", 8080)(o); err != nil {
+				if err = WithAddress("", DefaultPort)(o); err != nil {
 					return err
 				}
 			}
 		}
 		if o.Logger == nil {
-			if err = WithLogger(slog.Default().With(
-				slog.String("commit", vcsCommit()),
-			))(o); err != nil {
-				return err
-			}
-		}
-		// if o.ErrorHandler == nil {
-		// 	if err = WithErrorHandler(oakhttp.NewErrorHandlerJSON(o.Logger))(o); err != nil {
-		// 		return err
-		// 	}
-		// }
-		if o.Handler == nil {
-			if err = WithHandler(http.HandlerFunc(
-				func(w http.ResponseWriter, r *http.Request) {
-					http.Error(w, "Empty Handler", http.StatusNotFound)
-				},
-			))(o); err != nil {
+			if err = WithLogger(slog.Default())(o); err != nil {
 				return err
 			}
 		}
@@ -253,7 +244,7 @@ func WithTraceIDGenerator(generator func() string) Option {
 			return errors.New("cannot use a <nil> trace id generator")
 		}
 		return WithContextFactory(func(_ net.Listener) context.Context {
-			return ContextWithTraceIDGenerator(context.Background(), generator)
+			return oakhttp.ContextWithTraceIDGenerator(context.Background(), generator)
 		})(o)
 	}
 }
@@ -277,19 +268,6 @@ func WithDefaultTraceIDGenerator() Option {
 	}
 }
 
-// func WithErrorHandler(h oakhttp.ErrorHandler) Option {
-// 	return func(o *options) error {
-// 		if o.ErrorHandler != nil {
-// 			return errors.New("error handler is already set")
-// 		}
-// 		if h == nil {
-// 			return errors.New("cannot use a <nil> error handler")
-// 		}
-// 		o.ErrorHandler = h
-// 		return nil
-// 	}
-// }
-
 func WithTLS(certificateFile, keyFile string) Option {
 	return func(o *options) error {
 		if o.TLSCertificateFile != "" {
@@ -301,7 +279,7 @@ func WithTLS(certificateFile, keyFile string) Option {
 	}
 }
 
-func WithHandler(h http.Handler) Option {
+func WithUnsafeHandler(h http.Handler) Option {
 	return func(o *options) error {
 		if o.Handler != nil {
 			return errors.New("HTTP handler is already set")
@@ -314,44 +292,13 @@ func WithHandler(h http.Handler) Option {
 	}
 }
 
-func WithOakHandler(h oakhttp.Handler, eh oakhttp.ErrorHandler) Option {
+func WithHandler(h http.Handler) Option {
 	return func(o *options) error {
 		if h == nil {
-			return errors.New("cannot use a <nil> OakHTTP handler")
+			return errors.New("cannot use a <nil> handler")
 		}
-		if eh == nil {
-			return errors.New("cannot use a <nil> OakHTTP error handler")
-		}
-		return WithHandler(
-			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if err := oakhttp.NewPanicRecoveryHandler(h)(w, r); err != nil {
-					eh(w, r, err)
-				}
-			}),
-		)(o)
-		// return WithHandler(
-		// 	http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// 		// defer func() {
-		// 		// 	if err := oakhttp.Recover(); err != nil {
-		// 		// 		eh(w, r, err)
-		// 		// 	}
-		// 		// }()
-		//
-		// 		// defer NewDeferredPanicHandler(eh)
-		// 		defer func() {
-		// 			if recovery := recover(); recovery != nil {
-		// 				buf := make([]byte, 10<<10)
-		// 				n := runtime.Stack(buf, false)
-		// 				fmt.Fprintf(os.Stderr, "panic: %v\n\n%s", recovery, buf[:n])
-		//
-		// 				eh(w, r, fmt.Errorf("recovered from panic: %v", recovery))
-		// 			}
-		// 		}()
-		//
-		// 		if err := h(w, r); err != nil {
-		// 			eh(w, r, err)
-		// 		}
-		// 	},
-		// 	))(o)
+		return WithUnsafeHandler(oakhttp.NewPanicHandler(
+			oakhttp.NewErrorHandler(nil, nil, o.Logger),
+		)(h))(o)
 	}
 }

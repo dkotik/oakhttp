@@ -6,31 +6,27 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dkotik/oakacs/oakhttp"
+	"github.com/dkotik/oakhttp"
 )
 
 func TestServer(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	logger := NewDebugLogger()
+	logger := oakhttp.NewDebugLogger()
 
+	errChannel := make(chan error)
 	go func() {
-		err := Run(
+		errChannel <- Run(
 			ctx,
-			WithOakHandler(
-				func(w http.ResponseWriter, r *http.Request) error {
-					logger.InfoCtx(r.Context(), "trace IDs must match between two entries")
-					return oakhttp.NewNotFoundError("test page")
+			WithHandler(http.HandlerFunc(
+				func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(http.StatusInternalServerError)
 				},
-				oakhttp.NewErrorHandlerJSON(NewDebugLogger()),
-			),
+			)),
 			WithLogger(logger),
 			WithDebugOptions(),
 		)
-		if err != nil {
-			t.Fatal(err)
-		}
 	}()
 
 	time.Sleep(time.Millisecond * 100)
@@ -43,5 +39,14 @@ func TestServer(t *testing.T) {
 
 	if resp.StatusCode != http.StatusInternalServerError {
 		t.Fatal("unexpected status code:", resp.StatusCode)
+	}
+
+	select {
+	case <-time.After(time.Second):
+		t.Fatal("server did not shut down within one second limit")
+	case err := <-errChannel:
+		if err != nil {
+			t.Fatal("server shut down with an error:", err)
+		}
 	}
 }

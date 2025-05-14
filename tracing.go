@@ -2,6 +2,7 @@ package oakhttp
 
 import (
 	"context"
+	"log"
 	"log/slog"
 	"runtime/debug"
 	"sync"
@@ -71,6 +72,13 @@ type slogAdaptor struct {
 	level  slog.Level
 }
 
+func NewSlogAdaptor(logger *slog.Logger, level slog.Level) *log.Logger {
+	return log.New(&slogAdaptor{
+		logger: logger,
+		level:  level,
+	}, "HTTP: ", log.LstdFlags)
+}
+
 func (s *slogAdaptor) Write(b []byte) (n int, err error) {
 	s.logger.Log(context.Background(), s.level, string(b))
 	return len(b), nil
@@ -87,4 +95,21 @@ func vcsCommit() string {
 		}
 	}
 	return "<unknown>"
+}
+
+type tracingHandler struct {
+	slog.Handler
+}
+
+func (t *tracingHandler) Handle(ctx context.Context, r slog.Record) error {
+	if ID := TraceIDFromContext(ctx); ID != "" {
+		r.AddAttrs(slog.String("traceID", ID))
+	}
+	return t.Handler.Handle(ctx, r)
+}
+
+func NewTracingHandler(h slog.Handler) slog.Handler {
+	return &tracingHandler{
+		Handler: h,
+	}
 }
