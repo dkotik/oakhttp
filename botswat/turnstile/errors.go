@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/tigerperformanceinstitute/tprograms/service/oakhttp"
+	"github.com/dkotik/oakhttp"
 )
 
 var ErrNoCookie = oakhttp.NewAccessDeniedError(http.ErrNoCookie)

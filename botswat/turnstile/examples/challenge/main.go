@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/tigerperformanceinstitute/tprograms/service/oakhttp"
 	"github.com/tigerperformanceinstitute/tprograms/service/oakhttp/turnstile"
-	"golang.org/x/exp/slog"
 )
 
 func main() {

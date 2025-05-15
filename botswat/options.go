@@ -3,6 +3,8 @@ package botswat
 import (
 	"errors"
 	"net/http"
+
+	"github.com/dkotik/oakhttp"
 )
 
 const (
@@ -18,13 +20,26 @@ type HumanityTokenExtractor func(
 )
 
 type options struct {
+	ErrorHandler           oakhttp.ErrorHandler
 	Verifier               Verifier
 	HumanityTokenExtractor HumanityTokenExtractor
 	Cache                  Cache
-	// Encoder           oakhttp.Encoder
 }
 
 type Option func(*options) error
+
+func WithErrorHandler(eh oakhttp.ErrorHandler) Option {
+	return func(o *options) error {
+		if o.ErrorHandler != nil {
+			return errors.New("error handler is already set")
+		}
+		if eh == nil {
+			return errors.New("nil error handler")
+		}
+		o.ErrorHandler = eh
+		return nil
+	}
+}
 
 func WithVerifier(v Verifier) Option {
 	return func(o *options) error {
@@ -89,19 +104,6 @@ func WithHeaderHumanityTokenExtractor(name string) Option {
 func WithDefaultHeaderHumanityTokenExtractor() Option {
 	return WithHeaderHumanityTokenExtractor(DefaultHeaderName)
 }
-
-// func WithEncoder(e oakhttp.Encoder) Option {
-// 	return func(o *options) error {
-// 		if o.Encoder != nil {
-// 			return errors.New("request encoder is already set")
-// 		}
-// 		if e == nil {
-// 			return errors.New("cannot use a <nil> request encoder")
-// 		}
-// 		o.Encoder = e
-// 		return nil
-// 	}
-// }
 
 func WithCache(c Cache) Option {
 	return func(o *options) error {

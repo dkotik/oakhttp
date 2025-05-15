@@ -6,8 +6,8 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/tigerperformanceinstitute/tprograms/service/oakhttp"
-	"github.com/tigerperformanceinstitute/tprograms/service/oakhttp/store"
+	"github.com/dkotik/oakhttp"
+	"github.com/dkotik/oakhttp/store"
 )
 
 type contextKey struct{}

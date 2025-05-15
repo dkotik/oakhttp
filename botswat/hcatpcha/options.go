@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/dkotik/oakacs/oakhttp/oakclient"
+	"slices"
+
+	"github.com/dkotik/oakhttp/client"
 )
 
 type options struct {
@@ -18,12 +20,7 @@ type options struct {
 }
 
 func (o *options) IsAllowedAction(a string) bool {
-	for _, action := range o.AllowedActions {
-		if action == a {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(o.AllowedActions, a)
 }
 
 type Option func(*options) error
@@ -31,7 +28,7 @@ type Option func(*options) error
 func WithDefaultOptions() Option {
 	return func(o *options) (err error) {
 		if o.HTTPClient == nil {
-			client, err := oakclient.New()
+			client, err := client.New()
 			if err != nil {
 				return err
 			}

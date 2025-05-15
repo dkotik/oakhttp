@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"text/template"
 
 	"github.com/tigerperformanceinstitute/tprograms/service/oakhttp"
-	"golang.org/x/exp/slog"
 )
 
 type Middleware struct {

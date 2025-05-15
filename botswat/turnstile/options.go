@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tigerperformanceinstitute/tprograms/service/oakhttp"
-	"github.com/tigerperformanceinstitute/tprograms/service/oakhttp/store"
+	"github.com/dkotik/oakhttp"
+	"github.com/dkotik/oakhttp/store"
 )
 
 const DefaultRetention = time.Hour * 24 * 7
