@@ -3,16 +3,18 @@ package botswat
 import (
 	"errors"
 	"fmt"
+	"html/template"
 	"strings"
 	"time"
 
 	_ "embed"
+
+	"github.com/dkotik/oakhttp"
 )
 
-//go:embed template.html
-var Template string
-
-type TemplateOptions struct {
+type templateOptions struct {
+	Script         string
+	Element        template.HTML
 	Locale         string
 	Title          string
 	Description    string
@@ -21,12 +23,12 @@ type TemplateOptions struct {
 	CookieDuration time.Duration
 }
 
-type TemplateOption func(*TemplateOptions) error
+type TemplateOption func(*templateOptions) error
 
-func NewTemplateOptions(all ...TemplateOption) (*TemplateOptions, error) {
-	o := &TemplateOptions{}
+func NewTemplateOptions(all ...TemplateOption) (*templateOptions, error) {
+	o := &templateOptions{}
 	var err error
-	for _, option := range append(all, func(o *TemplateOptions) (err error) {
+	for _, option := range append(all, func(o *templateOptions) (err error) {
 		if o.Locale == "" {
 			if err = WithLocale("en")(o); err != nil {
 				return err
@@ -67,7 +69,7 @@ func NewTemplateOptions(all ...TemplateOption) (*TemplateOptions, error) {
 }
 
 func WithLocale(key string) TemplateOption {
-	return func(o *TemplateOptions) error {
+	return func(o *templateOptions) error {
 		if o.Locale != "" {
 			return errors.New("site key is already set")
 		}
@@ -81,7 +83,7 @@ func WithLocale(key string) TemplateOption {
 }
 
 func WithTitle(title string) TemplateOption {
-	return func(o *TemplateOptions) error {
+	return func(o *templateOptions) error {
 		if o.Title != "" {
 			return errors.New("title is already set")
 		}
@@ -95,7 +97,7 @@ func WithTitle(title string) TemplateOption {
 }
 
 func WithDescription(description string) TemplateOption {
-	return func(o *TemplateOptions) error {
+	return func(o *templateOptions) error {
 		if o.Description != "" {
 			return errors.New("description is already set")
 		}
@@ -109,7 +111,7 @@ func WithDescription(description string) TemplateOption {
 }
 
 func WithErrorURL(URL string) TemplateOption {
-	return func(o *TemplateOptions) error {
+	return func(o *templateOptions) error {
 		if o.ErrorURL != "" {
 			return errors.New("error URL is already set")
 		}
@@ -123,7 +125,7 @@ func WithErrorURL(URL string) TemplateOption {
 }
 
 func WithCookieName(name string) TemplateOption {
-	return func(o *TemplateOptions) error {
+	return func(o *templateOptions) error {
 		if o.CookieName != "" {
 			return errors.New("cookie name is already set")
 		}
@@ -137,7 +139,7 @@ func WithCookieName(name string) TemplateOption {
 }
 
 func WithCookieDuration(d time.Duration) TemplateOption {
-	return func(o *TemplateOptions) error {
+	return func(o *templateOptions) error {
 		if o.CookieDuration != 0 {
 			return errors.New("cookie duration is already set")
 		}
@@ -149,30 +151,35 @@ func WithCookieDuration(d time.Duration) TemplateOption {
 	}
 }
 
-// func NewTemplate(withOptions ...TemplateOption) (*template.Template, error) {
-// 	o := &templateOptions{}
-//
-// 	var err error
-// 	defer func() {
-// 		if err != nil {
-// 			err = fmt.Errorf("cannot create botswat template: %w", err)
-// 		}
-// 	}()
-//
-// 	for _, option := range append(withOptions, func(o *templateOptions) error {
-// 		// if o.SiteKey == "" {
-// 		// 	return errors.New("site key is required")
-// 		// }
-// 		return nil
-// 	}) {
-// 		if err = option(o); err != nil {
-// 			return nil, err
-// 		}
-// 	}
-//
-// 	t, err := template.New("botswat").Parse(templateHTML)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("cannot parse template: %w", err)
-// 	}
-// 	return t, nil
-// }
+func NewTemplate(withOptions ...TemplateOption) (*template.Template, error) {
+	o := &templateOptions{}
+
+	var err error
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("cannot create botswat template: %w", err)
+		}
+	}()
+
+	templateHTML, err := oakhttp.Templates.ReadFile("internal/templates/page/botswat.html")
+	if err != nil {
+		return nil, fmt.Errorf("unable to load the template file: %w", err)
+	}
+
+	for _, option := range append(withOptions, func(o *templateOptions) error {
+		// if o.SiteKey == "" {
+		// 	return errors.New("site key is required")
+		// }
+		return nil
+	}) {
+		if err = option(o); err != nil {
+			return nil, err
+		}
+	}
+
+	t, err := template.New("botswat").Parse(string(templateHTML))
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse template: %w", err)
+	}
+	return t, nil
+}

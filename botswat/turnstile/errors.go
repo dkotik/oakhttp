@@ -7,7 +7,7 @@ import (
 	"github.com/dkotik/oakhttp"
 )
 
-var ErrNoCookie = oakhttp.NewAccessDeniedError(http.ErrNoCookie)
+var ErrNoCookie = oakhttp.NewAccessDeniedError(http.ErrNoCookie, "turnstileNoCookie")
 
 // var ErrTokenEmpty = errors.New("cannot recover request token proving humanity: token is empty")
 

@@ -1,8 +1,14 @@
 package botswat
 
-import "errors"
+import (
+	"errors"
 
-var ErrTokenEmpty = errors.New("cannot recover request token proving humanity: token is empty")
+	"github.com/dkotik/oakhttp"
+)
+
+const errorKnowledgeCodePrefix = "botswat:"
+
+var ErrTokenEmpty = oakhttp.NewAccessDeniedError(errors.New("humanity token is empty"), errorKnowledgeCodePrefix+"emptyToken")
 
 type Error string
 
@@ -11,7 +17,10 @@ func NewErrorFromCodes(codes ...string) error {
 	for i, code := range codes {
 		errs[i] = Error(code)
 	}
-	return errors.Join(errs...)
+	if len(errs) == 0 {
+		return nil
+	}
+	return oakhttp.NewAccessDeniedError(errors.Join(errs...), errorKnowledgeCodePrefix+codes[0])
 }
 
 const (
@@ -22,29 +31,27 @@ const (
 	ErrBadRequest           Error = "bad-request"
 	ErrTimeoutOrDuplicate   Error = "timeout-or-duplicate"
 	ErrInternalError        Error = "internal-error"
-
-	errorPrefix = "humanity check failed: "
 )
 
 func (err Error) Error() string {
 	switch err {
 	case ErrMissingInputSecret:
-		return errorPrefix + "request is missing the secret key"
+		return "request is missing the secret key"
 	case ErrInvalidInputSecret:
-		return errorPrefix + "invalid secret key"
+		return "invalid secret key"
 	case ErrMissingInputResponse:
-		return errorPrefix + "empty client response"
+		return "empty client response"
 	case ErrInvalidInputResponse:
-		return errorPrefix + "invalid client response"
+		return "invalid client response"
 	case ErrBadRequest:
-		return errorPrefix + "malformed request"
+		return "malformed request"
 	case ErrTimeoutOrDuplicate:
-		return errorPrefix + "client response expired"
+		return "client response expired"
 	case ErrInternalError:
-		return errorPrefix + "request failed"
+		return "request failed"
 	case "":
-		return errorPrefix + "unexpected empty error message"
+		return "unexpected empty error message"
 	default:
-		return errorPrefix + "unexpected error: " + string(err)
+		return "unexpected error: " + string(err)
 	}
 }

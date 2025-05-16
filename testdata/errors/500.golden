@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="robots" content="noindex, follow">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Internal Server Error</title>
+    <meta name="description" content="Service encountered internal error. It is unable to complete the desired operation."><style media="all">
+      body {
+        color: #333;
+        background-color: #fff;
+      }
+
+      article {
+        margin: 4em auto;
+        max-width: 25em;
+      }
+
+      a {
+        display: block;
+        padding: 1em 1.5em;
+        border-radius: 0.5em;
+        color: #fff;
+        background-color: #0edd7a;
+      }
+    </style></head>
+  <body>
+    <article>
+      <h1>
+        Internal Server Error
+        
+      </h1>
+      <p>Service encountered internal error. It is unable to complete the desired operation.</p>
+      <p>Service encountered internal error. It is unable to complete the desired operation.</p><p><a href="#back" onclick="window.history.back()">go back</a></p></article>
+  </body>
+</html>

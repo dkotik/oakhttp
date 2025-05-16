@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="robots" content="noindex, follow">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title></title>
+    <meta name="description" content="">
+    <script src="" async defer></script>
+    <style media="all">
+      body {
+        color: #333;
+        background-color: #fff;
+        font-family: sans-serif;
+        font-size: 1.4em;
+      }
+
+      article {
+        margin: 4em auto;
+        max-width: 25em;
+      }
+
+      a {
+        display: block;
+        text-align: center;
+        text-transform: capitalize;
+        text-decoration: none;
+        padding: 1em 1.5em;
+        border-radius: 0.5em;
+        color: #fff;
+        background-color: #0edd7a;
+      }
+    </style>
+    <script type="text/javascript">
+    function toggle(ID, on) {
+      var element = document.getElementById(ID);
+      element.style.display = on ? "block" : "none";
+    }
+
+    function callback(token) {
+      const d = new Date();
+      
+      d.setTime(d.getTime() + ( 0 *1000));
+      let expires = "expires="+ d.toUTCString();
+      document.cookie = "" + "=" + token + ";" + expires + ";path=/";
+
+
+      toggle("success", true);
+      toggle("error", false);
+      
+      
+    }
+
+    function callbackError(err) {
+      toggle("success", false);
+      toggle("error", true);
+    }
+    </script>
+  </head>
+  <body>
+    <article>
+      <h1></h1>
+      <p></p>
+
+      
+
+      
+
+      <section id="success" style="display:none;">
+        <p>You have proven your humanity!</p>
+        <a href="#proceed" onclick="window.location.reload()">Proceed</a>
+      </section>
+
+      <section id="error" style="display:none;">
+        <p>
+          Having trouble reaching humanity validation server...
+        </p>
+        <a href="#back" onclick="window.location.reload()">Refresh</a>
+      </section>
+    </article>
+  </body>
+</html>

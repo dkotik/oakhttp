@@ -7,9 +7,6 @@ import (
 	"os"
 	"strings"
 	"time"
-
-	"github.com/dkotik/oakhttp"
-	"github.com/dkotik/oakhttp/store"
 )
 
 const DefaultRetention = time.Hour * 24 * 7
@@ -21,49 +18,8 @@ type options struct {
 	SecretKey  string
 }
 
-type authenticatorOptions struct {
-	Client     *Turnstile
-	CookieName string
-	SiteAction string
-	Extractor  oakhttp.StringExtractor
-	Store      store.KeyKeyValue
-}
-
-func newAuthenticatorOptions(withOptions []AuthenticatorOption) (*authenticatorOptions, error) {
-	o := &authenticatorOptions{}
-	var err error
-	for _, option := range append(
-		withOptions,
-		WithDefaultClient(),
-		WithDefaultSiteAction(),
-		WithDefaultExtractor(),
-		WithDefaultStore(),
-		func(o *authenticatorOptions) error {
-			if o.Client == nil {
-				return errors.New("Turnstile client is required")
-			}
-			if o.SiteAction == "" {
-				return errors.New("site action is required")
-			}
-			if o.Extractor == nil {
-				return errors.New("extractor or cookie name are required")
-			}
-			if o.Store == nil {
-				return errors.New("store is required")
-			}
-			return nil
-		},
-	) {
-		if err = option(o); err != nil {
-			return nil, fmt.Errorf("cannot create Turnstile authenticator: %w", err)
-		}
-	}
-	return o, nil
-}
-
 type (
-	Option              func(*options) error
-	AuthenticatorOption func(*authenticatorOptions) error
+	Option func(*options) error
 )
 
 func WithHTTPClient(client *http.Client) Option {
@@ -173,136 +129,5 @@ func WithDefaultHostname() Option {
 			return nil
 		}
 		return WithHostnameFromEnvironment("TURNSTILE_HOSTNAME")(o)
-	}
-}
-
-func WithClient(client *Turnstile) AuthenticatorOption {
-	return func(o *authenticatorOptions) error {
-		if o.Client != nil {
-			return errors.New("client is already set")
-		}
-		if client == nil {
-			return errors.New("cannot use a <nil> client")
-		}
-		o.Client = client
-		return nil
-	}
-}
-
-func WithClientOptions(options ...Option) AuthenticatorOption {
-	return func(o *authenticatorOptions) (err error) {
-		if o.Client != nil {
-			return errors.New("client is already set")
-		}
-		o.Client, err = New(options...)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-}
-
-func WithDefaultClient() AuthenticatorOption {
-	return func(o *authenticatorOptions) (err error) {
-		if o.Client != nil {
-			return nil
-		}
-		o.Client, err = New()
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-}
-
-func WithSiteAction(action string) AuthenticatorOption {
-	return func(o *authenticatorOptions) error {
-		if o.SiteAction != "" {
-			return errors.New("site action is already set")
-		}
-		if action == "" {
-			return errors.New("cannot use an empty site action")
-		}
-		o.SiteAction = action
-		return nil
-	}
-}
-
-func WithDefaultSiteAction() AuthenticatorOption {
-	return func(o *authenticatorOptions) error {
-		if o.SiteAction != "" {
-			return nil
-		}
-		return WithSiteAction("view")(o)
-	}
-}
-
-func WithExtractor(e oakhttp.StringExtractor) AuthenticatorOption {
-	return func(o *authenticatorOptions) error {
-		if o.Extractor != nil {
-			return errors.New("extractor is already set")
-		}
-		if e == nil {
-			return errors.New("cannot use a <nil> extractor")
-		}
-		o.Extractor = e
-		return nil
-	}
-}
-
-func WithCookieName(name string) AuthenticatorOption {
-	return func(o *authenticatorOptions) error {
-		if o.Extractor != nil {
-			return errors.New("extractor is already set")
-		}
-		if name == "" {
-			return errors.New("cannot use an empty cookie name")
-		}
-		o.CookieName = name
-		return WithExtractor(func(r *http.Request) (string, error) {
-			cookie, err := r.Cookie(name)
-			if err != nil {
-				return "", ErrNoCookie
-			}
-			return cookie.Value, nil
-		})(o)
-	}
-}
-
-func WithDefaultExtractor() AuthenticatorOption {
-	return func(o *authenticatorOptions) error {
-		if o.Extractor != nil {
-			return nil
-		}
-		return WithCookieName("turnstile_" + o.SiteAction)(o)
-	}
-}
-
-func WithStore(s store.KeyKeyValue) AuthenticatorOption {
-	return func(o *authenticatorOptions) error {
-		if o.Store != nil {
-			return errors.New("data store is already set")
-		}
-		if s == nil {
-			return errors.New("cannot use a <nil> data store")
-		}
-		o.Store = s
-		return nil
-	}
-}
-
-func WithDefaultStore() AuthenticatorOption {
-	return func(o *authenticatorOptions) error {
-		if o.Store != nil {
-			return nil
-		}
-		store, err := store.NewMapKeyKeyValue(
-			store.WithValueRetentionFor(DefaultRetention),
-			store.WithMaximumValueCount(12000),
-		)
-		if err != nil {
-			return err
-		}
-		return WithStore(store)(o)
 	}
 }

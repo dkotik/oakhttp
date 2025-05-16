@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/tigerperformanceinstitute/tprograms/service/oakhttp"
-	"github.com/tigerperformanceinstitute/tprograms/service/oakhttp/turnstile"
+	"github.com/dkotik/oakhttp/botswat/turnstile"
+	"github.com/dkotik/oakhttp/server"
 )
 
 func main() {
@@ -15,24 +15,23 @@ func main() {
 
 	err := func() error {
 		gate, err := turnstile.NewMiddleware(
-			turnstile.WithAuthenticatorOptions(
-				turnstile.WithClientOptions(
-					turnstile.WithHostname("localhost"),
-				),
-			),
+		// turnstile.WithAuthenticatorOptions(
+		// 	turnstile.WithClientOptions(
+		// 		turnstile.WithHostname("localhost"),
+		// 	),
+		// ),
 		)
 		if err != nil {
 			return err
 		}
 
-		return oakhttp.Run(
+		return server.Run(
 			context.Background(),
 			// oakhttp.WithDebugOptions(),
-			oakhttp.WithHandler(
-				gate(oakhttp.HandlerFunc(
-					func(w http.ResponseWriter, r *http.Request) error {
+			server.WithHandler(
+				gate(http.HandlerFunc(
+					func(w http.ResponseWriter, r *http.Request) {
 						fmt.Fprintf(w, "though shalt pass")
-						return nil
 					},
 				)),
 			),

@@ -10,34 +10,11 @@ import (
 var templateHTML string
 
 type middlewareOptions struct {
-	templateOptions      *templateOptions
-	authenticatorOptions *authenticatorOptions
-	challenge            []byte
+	templateOptions *templateOptions
+	challenge       []byte
 }
 
 type MiddlewareOption func(*middlewareOptions) error
-
-func WithAuthenticatorOptions(options ...AuthenticatorOption) MiddlewareOption {
-	return func(o *middlewareOptions) (err error) {
-		if o.authenticatorOptions != nil {
-			return errors.New("authenticator options are already set")
-		}
-		o.authenticatorOptions, err = newAuthenticatorOptions(options)
-		if err != nil {
-			return fmt.Errorf("cannot apply authenticator options: %w", err)
-		}
-		return nil
-	}
-}
-
-func WithDefaultAuthenticatorOptions() MiddlewareOption {
-	return func(o *middlewareOptions) error {
-		if o.authenticatorOptions != nil {
-			return nil
-		}
-		return WithAuthenticatorOptions()(o)
-	}
-}
 
 func WithRenderedTemplate(tmpl []byte) MiddlewareOption {
 	return func(o *middlewareOptions) error {

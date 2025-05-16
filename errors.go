@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"slices"
 
+	"github.com/dkotik/oakhttp/internal/msg"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"golang.org/x/text/language"
 )
@@ -22,30 +23,6 @@ type Error struct {
 	Description   *i18n.LocalizeConfig
 	Message       *i18n.LocalizeConfig
 	Cause         error
-}
-
-func NewError(from error) Error {
-	return Error{
-		StatusCode: http.StatusInternalServerError,
-		Title: &i18n.LocalizeConfig{
-			DefaultMessage: &i18n.Message{
-				Other: http.StatusText(http.StatusInternalServerError),
-			},
-		},
-		Description: &i18n.LocalizeConfig{
-			DefaultMessage: &i18n.Message{
-				// TODO: replace with a meaningful paragraph
-				Other: http.StatusText(http.StatusInternalServerError),
-			},
-		},
-		Message: &i18n.LocalizeConfig{
-			DefaultMessage: &i18n.Message{
-				// TODO: replace with a meaningful paragraph
-				Other: http.StatusText(http.StatusInternalServerError),
-			},
-		},
-		Cause: from,
-	}
 }
 
 func (e Error) GetHyperTextStatusCode() int {
@@ -134,7 +111,7 @@ func (f ErrorRendererFunc) RenderError(w io.Writer, err LocalizedError) error {
 
 func NewErrorRenderer(t *template.Template) ErrorRenderer {
 	if t == nil {
-		et, err := templates.ReadFile("templates/page/error.html")
+		et, err := Templates.ReadFile("internal/templates/page/error.html")
 		if err != nil {
 			panic(fmt.Sprintf("unable to load error page template: %v", err))
 		}
@@ -258,7 +235,7 @@ func (h errorHandler) HandleError(w http.ResponseWriter, r *http.Request, err er
 
 	var localizableError Error
 	if !errors.As(err, &localizableError) {
-		localizableError = NewError(err)
+		localizableError = NewError(err, "")
 	}
 	w.WriteHeader(localizableError.StatusCode)
 	lc := i18n.NewLocalizer(h.LocalizerBundle, r.Header.Get("Accept-Language"))
@@ -340,4 +317,36 @@ func NewErrorHandlerSwitchByLanguage(sw map[language.Tag]ErrorHandler, options .
 func (eh ehByLanguage) HandleError(w http.ResponseWriter, r *http.Request, err error) {
 	tag, _, _ := eh.Matcher.Match(language.Make(r.Header.Get("Accept-Language")))
 	eh.Handlers[tag].HandleError(w, r, err)
+}
+
+func NewError(from error, knowledgeCode string) Error {
+	return Error{
+		StatusCode:  http.StatusInternalServerError,
+		Title:       msg.ErrorInternalTitle,
+		Description: msg.ErrorInternalDescription,
+		Message:     msg.ErrorInternalDescription,
+		Cause:       from,
+	}
+}
+
+func NewNotFoundError(from error, knowledgeCode string) Error {
+	return Error{
+		StatusCode:    http.StatusNotFound,
+		KnowledgeCode: knowledgeCode,
+		Title:         msg.ErrorNotFoundTitle,
+		Description:   msg.ErrorNotFoundDescription,
+		Message:       msg.ErrorNotFoundDescription,
+		Cause:         from,
+	}
+}
+
+func NewAccessDeniedError(from error, knowledgeCode string) Error {
+	return Error{
+		StatusCode:    http.StatusForbidden,
+		KnowledgeCode: knowledgeCode,
+		Title:         msg.ErrorAccessDeniedTitle,
+		Description:   msg.ErrorAccessDeniedDescription,
+		Message:       msg.ErrorAccessDeniedDescription,
+		Cause:         from,
+	}
 }

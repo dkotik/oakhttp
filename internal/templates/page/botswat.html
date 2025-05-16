@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ .Title }}</title>
     <meta name="description" content="{{ .Description }}">
-    <script src="{{ template "script" . }}" async defer></script>
+    <script src="{{ .Script }}" async defer></script>
     <style media="all">
       body {
         color: {{ block "textColor" .}}#333{{ end }};
@@ -30,8 +30,6 @@
         color: {{ template "backgroundColor" . }};
         background-color: {{ block "actionColor" .}}#0edd7a{{ end }};
       }
-
-      {{ template "style" . }}
     </style>
     <script type="text/javascript">
     function toggle(ID, on) {
@@ -64,7 +62,7 @@
       <h1>{{ .Title }}</h1>
       <p>{{ .Description }}</p>
 
-      {{ template "element" . }}
+      {{ .Element }}
 
       <!-- Requires enabled Javascript and Cookies to complete. -->
 

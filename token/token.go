@@ -9,7 +9,12 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"net/http"
 )
+
+type Extractor interface {
+	ExtractToken(*http.Request) (string, error)
+}
 
 type Factory func() (string, error)
 

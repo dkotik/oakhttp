@@ -107,6 +107,7 @@ func Run(ctx context.Context, withOptions ...Option) (err error) {
 		timeoutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
+		// more: https://dev.to/mokiat/proper-http-shutdown-in-go-3fji
 		if err := server.Shutdown(timeoutCtx); err != nil {
 			logger.Error("error shutting down OakHTTP server", slog.Any("error", err))
 		}

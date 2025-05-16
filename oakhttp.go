@@ -9,10 +9,14 @@ import (
 	"time"
 
 	"github.com/lmittmann/tint"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
+	"golang.org/x/text/language"
 )
 
-//go:embed templates
-var templates embed.FS
+//go:embed internal/templates
+var Templates embed.FS
+
+var LocalizationBundle = i18n.NewBundle(language.AmericanEnglish)
 
 type Middleware func(http.Handler) http.Handler
 
